@@ -165,7 +165,10 @@ class ArmisCloud:
         with contextlib.suppress(AttributeError):
             self.httpx_client.close()
 
-        httpx_client = httpx.Client(
+        return httpx.Client(
+            event_hooks={
+                "response": [self._httpx_callback_request_raise_4xx_5xx],
+            },
             follow_redirects=True,
             headers={
                 "user-agent": f"Armis Python Library {__version__}",
@@ -175,7 +178,17 @@ class ArmisCloud:
             timeout=self._http_timeout,
             trust_env=False,
         )
-        return httpx_client  # noqa: RET504
+
+    def _httpx_callback_request_raise_4xx_5xx(self, response):
+        self.log.debug(
+            "_httpx_callback_request_raise_4xx_5xx raising alert, status_code=%s",
+            response.status_code,
+        )
+
+        if response.status_code == httpx.codes.UNAUTHORIZED:
+            self.log.debug("401 unauthorized, our token probably expired")
+            self.authorization_token_expiration = 0
+            response.raise_for_status()
 
     def _api_http_request(self, **kwargs):
         """Wrap the request function and handles the authorization token.
@@ -326,6 +339,9 @@ class ArmisCloud:
                             str(url),
                             headers=headers,
                         )
+                        # this usually returns a 204, so no text will be present
+                        # just return the result
+                        return r  # noqa: RET504
 
                 self.log.debug("response http version=%s", str(r.http_version))
 
@@ -359,9 +375,9 @@ class ArmisCloud:
             self.log.debug("expires=%s", str(self._authorization_token_expiration))
             self.log.debug("now > _authorization_token_expiration")
             self.log.debug("_authorization_token expired, getting new one")
-            url = str(self.TENANT_BASE_URL / "v1/access_token/")
+            url = self.TENANT_BASE_URL / "v1/access_token/"
             r = self.httpx_client.post(
-                url,
+                str(url),
                 data={
                     "secret_key": self.API_SECRET_KEY,
                 },
@@ -393,6 +409,108 @@ class ArmisCloud:
 
         self.log.debug("END")
 
+    def create_boundary(self, **kwargs) -> dict:
+        """Update a boundary given a boundary_id, name, and ruleaql.
+
+        Parameters
+        ----------
+        name : str
+            new name of the boundary
+        affected_sites : str|list, optional
+            sites affected
+        ruleaql : dict
+            aql to define the boundary
+
+        Returns
+        -------
+        creation_results : dict
+
+        Notes
+        -----
+        The cloud must be running at version >= R-23.3-S182.
+        """
+        self.log.debug("kwargs=%s", str(kwargs))
+
+        affected_sites = kwargs.get("affected_sites", None)
+        name = kwargs.get("name", None)
+        ruleaql = kwargs.get("ruleaql", None)
+
+        if name is None and ruleaql is None:
+            raise ValueError("name and ruleaql are required")
+        if name is None:
+            raise ValueError("name is required")
+        if ruleaql is None:
+            raise ValueError("ruleaql is required")
+
+        boundary_payload = {
+            "name": name,
+            "ruleAql": ruleaql,
+        }
+
+        if affected_sites is not None:
+            if isinstance(affected_sites, list):
+                self.log.debug(
+                    "affected_types was list, converting to a comma-delimited str",
+                )
+                # check if there is a comma in the name
+                # we can't update a boundary using an affected site with a comma in it
+                for affected_site in affected_sites:
+                    if "," in affected_site:
+                        raise ValueError(
+                            "Site '"
+                            + affected_site
+                            + "' contains a comma - Armis API doesn't support this",
+                        )
+
+                affected_sites = ",".join(affected_sites)
+
+            boundary_payload["affectedSites"] = affected_sites
+
+        self.log.debug("payload is now %s", str(boundary_payload))
+
+        # create the boundary
+        url = self.TENANT_BASE_URL / "v1/boundaries/"
+        self.log.debug("url=%s", str(url))
+        boundary_create = self._api_http_request(
+            method="POST",
+            url=url,
+            json=boundary_payload,
+        )
+        self.log.debug("return text=%s", str(boundary_create.text))
+        self.log.debug("status_code=%s", str(boundary_create.status_code))
+
+        # when creating a boundary, you get 201 back if it was created
+        if boundary_create.status_code != httpx.codes.CREATED:
+            self.log.info("FAILED boundary create for name: %s", str(name))
+            self.log.debug(boundary_create.text)
+            raise Exception("boundary update issue", boundary_create.text)
+
+        return self._json_decoder.decode(boundary_create.text)
+
+    def delete_boundary(self, boundary_id: int) -> dict:
+        """Delete a boundary given a boundary_id.
+
+        Parameters
+        ----------
+        boundary_id : int
+            The ID of the boundary tool to retrieve.
+
+        Returns
+        -------
+        delete_results : dict
+        """
+        url = self.TENANT_BASE_URL / f"v1/boundaries/{boundary_id}/"
+        self.log.debug("url=%s", str(url))
+        boundary_delete = self._api_http_request(method="DELETE", url=url)
+        if boundary_delete.status_code != httpx.codes.NO_CONTENT:
+            self.log.critical("STATUS CODE != 204")
+            self.log.critical("status_code=%s", str(boundary_delete.status_code))
+            raise Exception("boundary_delete issue", boundary_delete.text)
+
+        if boundary_delete.status_code == httpx.codes.NO_CONTENT:
+            return {"success": True}
+        return {"success": False}
+
     def get_boundary(self, boundary_id: int) -> dict:
         """Get a boundary given a boundary_id.
 
@@ -409,12 +527,11 @@ class ArmisCloud:
         -----
         The cloud must be running at version >= R-23.3-S182.
         """
-        # boundary_id = kwargs.get("boundary_id", None)
-
         if boundary_id is None:
             raise ValueError("Need a boundary_id to continue")
 
-        url = self.TENANT_BASE_URL / "v1/boundaries" / str(boundary_id) / "/"
+        url = self.TENANT_BASE_URL / f"v1/boundaries/{boundary_id}/"
+
         self.log.debug("url=%s", str(url))
         boundary_details = self._api_http_request(method="GET", url=url)
 
@@ -426,12 +543,16 @@ class ArmisCloud:
         return self._json_decoder.decode(boundary_details.text)["data"]
 
     def get_boundaries(self) -> dict:
-        """Get a list of boundaries.  Only works for cloud version >= R-23.3-S182.
+        """Get a list of boundaries.
 
         Returns
         -------
         boundaries : dict
             A dict of boundaries with the boundary_id as the key
+
+        Notes
+        -----
+        The cloud must be running at version >= R-23.3-S182.
         """
         url = self.TENANT_BASE_URL / "v1/boundaries/"
         url.args["from"] = 0
@@ -472,14 +593,14 @@ class ArmisCloud:
             Armis boundary_id
         name : str
             new name of the boundary
-        affected_sites : str|list, optional
+        affected_sites : str | list, optional
             sites affected
         ruleaql : dict
             ASQ to define the boundary
 
         Notes
         -----
-        Only applies to cloud version >= R-23.3-S182.
+        The cloud must be running at version >= R-23.3-S182.
         """
         self.log.debug("kwargs=%s", str(kwargs))
 
@@ -533,7 +654,7 @@ class ArmisCloud:
         self.log.debug("payload is now %s", str(boundary_update_payload))
 
         # PATCH the boundary
-        url = self.TENANT_BASE_URL / "v1" / "boundaries" / str(boundary_id) / "/"
+        url = self.TENANT_BASE_URL / f"v1/boundaries/{boundary_id}/"
         self.log.debug("url=%s", str(url))
         boundary_update = self._api_http_request(
             method="PATCH",
@@ -550,6 +671,150 @@ class ArmisCloud:
             self.log.debug(boundary_update.text)
             raise Exception("boundary update issue", boundary_update.text)
 
+    def get_collector(self, collector_id: int) -> dict:
+        """Get a collector given the collector_id.
+
+        Parameters
+        ----------
+        collector_id: int
+            The collector ID to fetch details about.
+
+        Returns
+        -------
+        collectors_dict: dict
+            A dictionary of a collector.
+        """
+        if collector_id is None:
+            raise ValueError("collector_id is required")
+
+        self.log.info("collector_id=%s", str(collector_id))
+        url = self.TENANT_BASE_URL / f"v1/collectors/{collector_id}/"
+
+        self.log.debug("url=%s", str(url))
+        collector_request = self._api_http_request(method="GET", url=url)
+        if collector_request.status_code != httpx.codes.OK:
+            raise Exception("collector issue", collector_request.text)
+
+        return self._json_decoder.decode(collector_request.text)["data"]
+
+    def get_collectors(self) -> dict:
+        """Get a dictionary of collectors.
+
+        Returns
+        -------
+        collectors_inventory: dict
+            A dictionary of collectors.
+
+        """
+        url = self.TENANT_BASE_URL / "v1/collectors/"
+        url.args["from"] = 0
+        url.args["length"] = self.ARMIS_API_PAGE_SIZE
+        collectors_inventory = {}
+
+        while url.args["from"] is not None:
+            self.log.info(
+                "fetching %s-%s",
+                str(url.args["from"]),
+                str(url.args["from"] + self.ARMIS_API_PAGE_SIZE),
+            )
+            get_collectors_request = self._api_http_request(method="GET", url=url)
+            if get_collectors_request.status_code != httpx.codes.OK:
+                self.log.critical("STATUS CODE != 200")
+                self.log.critical(
+                    "status_code=%s",
+                    str(get_collectors_request.status_code),
+                )
+                self.log.critical("text=%s", get_collectors_request.text)
+                self.log.critical("continuing")
+                continue
+
+            collectors_response = self._json_decoder.decode(get_collectors_request.text)
+            collectors_count = collectors_response["data"]["count"]
+            self.log.debug("retrieved %s collectors", str(collectors_count))
+
+            for collector in collectors_response["data"]["collectors"]:
+                collectornumber = collector["collectorNumber"]
+                collectors_inventory[collectornumber] = collector
+
+            self.log.debug(
+                "collectors next=%s",
+                str(collectors_response["data"]["next"]),
+            )
+            url.args["from"] = collectors_response["data"]["next"]
+
+        self.log.debug("collectors_inventory size=%s", str(len(collectors_inventory)))
+
+        if len(collectors_inventory) > 0:
+            collectors_inventory = dict(sorted(collectors_inventory.items()))
+        return collectors_inventory
+
+    def get_collectors_count(self) -> int:
+        """Get a count of collectors.
+
+        Returns
+        -------
+        collectors_count: int
+            A count of collectors.
+
+        """
+        self.log.info("get_collectors_count")
+        url = self.TENANT_BASE_URL / "v1/collectors/"
+        self.log.debug("url=%s", str(url))
+        url.args["length"] = 1
+        collectors_count_request = self._api_http_request(method="GET", url=url)
+        collectors_count = int(
+            self._json_decoder.decode(collectors_count_request.text)["data"]["total"],
+        )
+        self.log.debug("collectors_count=%s", str(collectors_count))
+        return collectors_count
+
+    def rename_collector(self, **kwargs) -> dict:
+        """Rename a collector given the collector_id.
+
+        Parameters
+        ----------
+        collector_id: int
+            The collector ID to rename
+        new_name: str
+            New name of the collector
+
+        Returns
+        -------
+        dict
+            JSON data as a dict.
+        """
+        collector_id = kwargs.get("collector_id", None)
+        new_name = kwargs.get("new_name", None)
+
+        if collector_id is None:
+            raise ValueError("collector_id is required")
+        if new_name is None:
+            raise ValueError("new_name is required")
+
+        # patch
+        url = self.TENANT_BASE_URL / f"v1/collectors/{collector_id}/"
+
+        rename_collector_payload = {
+            "name": new_name,
+        }
+        collector_update = self._api_http_request(
+            method="PATCH",
+            url=url,
+            json=rename_collector_payload,
+        )
+        self.log.debug("return text=%s", str(collector_update.text))
+        self.log.debug("status_code=%s", str(collector_update.status_code))
+        if collector_update.status_code != httpx.codes.OK:
+            self.log.info(
+                "FAILED collector rename for collector_id=%s, new_name=%s",
+                str(collector_id),
+                new_name,
+            )
+            self.log.debug(collector_update.text)
+            raise Exception("collector rename issue", collector_update.text)
+
+        return self._json_decoder.decode(collector_update.text)
+
     def get_devices(self, **kwargs: dict) -> list:
         """Get devices from inventory matching ASQ.
 
@@ -562,7 +827,7 @@ class ArmisCloud:
 
         Returns
         -------
-        inventory: list
+        inventory : list
             Inventory items matching ASQ.
         """
         get_devices_start = pendulum.now()
@@ -574,7 +839,7 @@ class ArmisCloud:
         fields_wanted = kwargs.get("fields_wanted", [])
         self.log.info("fields_wanted=%s", str(",".join(fields_wanted)))
 
-        url = self.TENANT_BASE_URL / "v1" / "devices/"
+        url = self.TENANT_BASE_URL / "v1/devices/"
         url.args["search"] = asq
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
@@ -745,7 +1010,7 @@ class ArmisCloud:
             raise ValueError("asq is required")
         self.log.info("asq=%s", asq)
 
-        url = self.TENANT_BASE_URL / "v1" / "devices/"
+        url = self.TENANT_BASE_URL / "v1/devices/"
         url.args["search"] = asq
         url.args["length"] = 1
         url.args["from"] = 0
@@ -772,9 +1037,9 @@ class ArmisCloud:
         ----------
         device_id : int
             Device ID to tag.
-        tags: list|str
+        tags : list | str
             Tags to add to or remove from the device ID.
-        action: {'add', 'remove'}
+        action : {'add', 'remove'}
             Action to perform, one of add or remove.
         """
         self.log.debug("tag_device")
@@ -802,7 +1067,8 @@ class ArmisCloud:
         if action not in {"add", "remove"}:
             raise ValueError("no valid action provided, should be one of add or remove")
 
-        url = self.TENANT_BASE_URL / "v1" / "devices" / str(device_id) / "tags/"
+        url = self.TENANT_BASE_URL / f"v1/devices/{device_id}/tags/"
+
         self.log.debug("url=%s", str(url))
 
         tag_payload = {"tags": tags}
@@ -836,82 +1102,6 @@ class ArmisCloud:
 
         return tag_device_update.text
 
-    def get_collector(self, collector_id: int) -> dict:
-        """Get a collector given the collector_id.
-
-        Parameters
-        ----------
-        collector_id : int
-            The collector ID to fetch details about.
-
-        Returns
-        -------
-        collectors_dict : dict
-            A dictionary of a collector.
-        """
-        if collector_id is None:
-            raise ValueError("collector_id is required")
-
-        self.log.info("collector_id=%s", str(collector_id))
-        url = self.TENANT_BASE_URL / "v1" / "collectors" / "/" / str(collector_id) / "/"
-        self.log.debug("url=%s", str(url))
-        collector_request = self._api_http_request(method="GET", url=url)
-        if collector_request.status_code != httpx.codes.OK:
-            raise Exception("collector issue", collector_request.text)
-
-        return self._json_decoder.decode(collector_request.text)["data"]
-
-    def get_collectors(self) -> dict:
-        """Get a dictionary of collectors.
-
-        Returns
-        -------
-        collectors_inventory : dict
-            A dictionary of collectors.
-
-        """
-        url = self.TENANT_BASE_URL / "v1" / "collectors/"
-        url.args["from"] = 0
-        url.args["length"] = self.ARMIS_API_PAGE_SIZE
-        collectors_inventory = {}
-
-        while url.args["from"] is not None:
-            self.log.info(
-                "fetching %s-%s",
-                str(url.args["from"]),
-                str(url.args["from"] + self.ARMIS_API_PAGE_SIZE),
-            )
-            get_collectors_request = self._api_http_request(method="GET", url=url)
-            if get_collectors_request.status_code != httpx.codes.OK:
-                self.log.critical("STATUS CODE != 200")
-                self.log.critical(
-                    "status_code=%s",
-                    str(get_collectors_request.status_code),
-                )
-                self.log.critical("text=%s", get_collectors_request.text)
-                self.log.critical("continuing")
-                continue
-
-            collectors_response = self._json_decoder.decode(get_collectors_request.text)
-            collectors_count = collectors_response["data"]["count"]
-            self.log.debug("retrieved %s collectors", str(collectors_count))
-
-            for collector in collectors_response["data"]["collectors"]:
-                collectornumber = collector["collectorNumber"]
-                collectors_inventory[collectornumber] = collector
-
-            self.log.debug(
-                "collectors next=%s",
-                str(collectors_response["data"]["next"]),
-            )
-            url.args["from"] = collectors_response["data"]["next"]
-
-        self.log.debug("collectors_inventory size=%s", str(len(collectors_inventory)))
-
-        if len(collectors_inventory) > 0:
-            collectors_inventory = dict(sorted(collectors_inventory.items()))
-        return collectors_inventory
-
     def get_integration(self, integration_id: int):
         """Get an integration given an integration_id.
 
@@ -928,13 +1118,12 @@ class ArmisCloud:
         Notes
         -----
         This method requires v2 of the API call which is only available in the
-        Armis Cloud version >= R-24.0.
+        Armis Cloud version >= R - 24.0.
         """
         if integration_id is None:
             raise ValueError("an integration_id is required")
 
-        url = self.TENANT_BASE_URL / "v2" / "integrations" / str(integration_id)
-        url = url / "/"
+        url = self.TENANT_BASE_URL / f"v2/integrations/{integration_id}/"
         url.args = {}
 
         integration_details = self._api_http_request(method="GET", url=url)
@@ -954,7 +1143,7 @@ class ArmisCloud:
             raise Exception("integration_details issue", integration_details.text)
 
         integration = self._json_decoder.decode(integration_details.text)["data"][0]
-        return integration
+        return integration  # noqa: RET504
 
     def get_integrations(self) -> dict:
         """Get a list of integrations.
@@ -969,7 +1158,7 @@ class ArmisCloud:
         This method requires v2 of the API call which is only available in the
         Armis Cloud version >= R-24.0.
         """
-        url = self.TENANT_BASE_URL / "v2" / "integrations/"
+        url = self.TENANT_BASE_URL / "v2/integrations/"
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
 
@@ -1025,7 +1214,7 @@ class ArmisCloud:
         This method requires v2 of the API call which is only available in the
         Armis Cloud version >= R-24.0.
         """
-        url = self.TENANT_BASE_URL / "v2" / "integrations/"
+        url = self.TENANT_BASE_URL / "v2/integrations/"
         url.args["length"] = 1
         self.log.debug("url=%s", str(url))
         count_request = self._api_http_request(method="GET", url=url)
@@ -1041,7 +1230,7 @@ class ArmisCloud:
 
         Notes
         -----
-        Only applies to cloud version >= R-23.3-S182.
+        The cloud must be running at version >= R-23.3-S182.
         """
         url = self.TENANT_BASE_URL / "v1/sites/"
         url.args["from"] = 0
@@ -1088,11 +1277,12 @@ class ArmisCloud:
         if site_id is None:
             raise ValueError("site_id was not provided")
 
-        url = self.TENANT_BASE_URL / "v1" / "sites" / str(site_id) / "/"
+        url = self.TENANT_BASE_URL / f"v1/sites/{site_id}/"
+
         self.log.debug("url=%s", str(url))
 
         site_request = self._api_http_request(method="GET", url=url)
-        if site_request.status_code != 200:
+        if site_request.status_code != httpx.codes.OK:
             self.log.critical("STATUS CODE !=200")
             self.log.critical("status_code=%s", str(site_request.status_code))
             self.log.critical("text=%s", site_request.text)

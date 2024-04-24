@@ -27,3 +27,8 @@ def test_get_boundary_by_id(boundaries, armis_object):
 def test_get_boundary_by_id_blank(armis_object):
     with pytest.raises(TypeError):
         armis_object.get_boundary()
+
+
+def test_get_boundary_by_id_none(armis_object):
+    with pytest.raises(ValueError):
+        armis_object.get_boundary(None)

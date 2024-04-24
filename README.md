@@ -19,32 +19,88 @@ Install **armis** using pip:
 $ pip install armis
 ```
 
-Now, let's get started:
+# A Quick Demo of Features
+
+## Getting Started
+First, let's create an ArmisCloud object:
+```python
+from armis import ArmisCloud
+
+a = ArmisCloud(
+    api_secret_key="your-api-secret-key-here",
+    tenant_hostname="your-tenant-hostname-here.armis.com"
+)
+```
+
+## Device Operations
+Let's get a list of all devices matching our ASQ and only retrieve a few fields:
 
 ```python
->>> from armis import ArmisCloud
->>> a = ArmisCloud(
-        api_secret_key="your-api-secret-key-here",
-        tenant_hostname="your-tenant-hostname-here.armis.com",
-        fields=["id", "ipAddress", "name", "firstSeen"]
-    )
->>> a.get_devices(asq='in:devices timeFrame:"10 Seconds"')
+devices = a.get_devices(
+    asq='in:devices timeFrame:"10 Seconds"',
+    fields=["id", "ipAddress", "name", "firstSeen"]
+)
+print(devices)
+
 [{"id": 15, "ipAddress": "10.1.2.3", "name": "super-pc", "firstSeen": "2019-05-15T13:00:00+00:00"}]
+```
 
+## Boundary Operations
 
->>> a.get_boundaries()
+Let's get all of the boundaries known to the system:
+```python
+boundaries = a.get_boundaries()
+print(boundaries)
+
 {1: {'affectedSites': '', 'id': 1, 'name': 'Corporate', 'ruleAql': {'or': ['ipAddress:10.0.0.0/8']}}, 2: {'affectedSites': '', 'id': 2, 'name': 'Guest', 'ruleAql': {'or': ['lastConnectedSsid:Guest']}}}
+```
 
+Let's get only one boundary by ID:
+```python
+boundaryone = a.get_boundary(boundary_id=1)
+print(boundaryone)
 
->>> a.get_boundary(boundary_id=1)
 {"data":{"affectedSites":"","id":1,"name":"Corporate","ruleAql":{"or":["ipAddress:10.0.0.0/8"]}},"success":true}
+```
 
+Deleting a boundary is easy:
 
->>> a.get_collectors()
+```python
+result = a.delete_boundary(boundary_id=3424234)
+print(result)
+{"success": True}
+```
+
+Creating a boundary is easy, though the syntax is not yet documented well here:
+```python
+result = a.create_boundary(
+    name="My New Boundary",
+    ruleaql={ "or": [
+        "ipAddress:10.0.0.0/24"
+        ]
+    }
+)
+print(result)
+{'data': {'id': 392309238}, 'success': True}
+```
+
+## Collector Operations
+
+Get a list of collectors:
+
+```python
+collectors = a.get_collectors()
+print(collectors)
+
 {1234: {'clusterId': 0, 'collectorNumber': 1234, 'defaultGateway': '10.0.0.1', 'httpsProxyRedacted': '', 'ipAddress': '10.0.0.2', 'lastSeen': '2019-05-15T13:00:00+00:00', 'macAddress': '00:12:34:56:78:90', 'name': 'Collector 1234', 'status': 'Offline', 'subnet': '10.0.0.0/24', 'type': 'Physical'}}
+```
 
+Get the details for a specific collector:
 
->>> a.get_collector(collector_id=1234)
+```python
+myimportantcollector = a.get_collector(collector_id=1234)
+print(myimportantcollector)
+
 {'clusterId': 0, 'collectorNumber': 1234, 'defaultGateway': '10.0.0.1', 'httpsProxyRedacted': '', 'ipAddress': '10.0.0.2', 'lastSeen': '2019-05-15T13:00:00+00:00', 'macAddress': '00:12:34:56:78:90', 'name': 'Collector 1234', 'status': 'Offline', 'subnet': '10.0.0.0/24', 'type': 'Physical'}
 
 ```
@@ -78,7 +134,5 @@ $ pip install armis
 * [pendulum](https://github.com/sdispater/pendulum) - for easy date/time management
 * [tenacity](https://github.com/jd/tenacity) - retry management when things fail, with great retry/backoff options
 
-
 ## License
-
 `armis` is distributed under the terms of the [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html) license.

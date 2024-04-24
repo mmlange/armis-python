@@ -76,6 +76,7 @@ check = "mypy --install-types --non-interactive {args:src/armis tests}"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
+  "private*",
   ".coverage_report",
   "coverage_report",
   "docs/",
