@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # ruff: noqa: F811,SLF001,D103,S311
 
-import random
 
 import pytest
 import tenacity

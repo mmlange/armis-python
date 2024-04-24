@@ -1,6 +1,6 @@
 # Armis Python Library
 
-<p align="center"><strong>armis</strong> <em>- A library for interacting with the Armis cloud.</em></p>
+<p align="center"><strong>armis</strong> <em>- A Python library for interacting with the Armis cloud.</em></p>
 
 <p align="center">
 <a href="https://github.com/mmlange/armis-python/actions">
@@ -8,7 +8,7 @@
 </a>
 </p>
 
-**armis** is a client library for talking to the Armis cloud.  It provides an API using **HTTP/2** by default,
+**armis** is a Python client library for interacting with the Armis cloud.  It connects using **HTTP/2** by default,
 falling back to **HTTP/1.1** when necessary.  Python 3.8+ is supported.
 
 ---

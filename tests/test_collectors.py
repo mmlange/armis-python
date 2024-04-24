@@ -2,20 +2,18 @@
 # ruff: noqa: F811,SLF001,D103,S311
 
 import random
-import sys
 
 import pytest
 from test_fixture import armis_object
 
 
-def test_get_collector_count(armis_object):
-    c = armis_object.get_collectors_count()
-    assert c > 0
+@pytest.fixture()
+def collectors(armis_object):
+    return armis_object.get_collectors()
 
 
-def test_get_collectors(armis_object):
-    collectors = armis_object.get_collectors()
-    randomcollectorid = random.choice(list(collectors.keys()))
-
-    randomcollector = armis_object.get_collector(randomcollectorid)
-    assert randomcollectorid == randomcollector["collectorNumber"]
+def test_get_collectors(armis_object, collectors):
+    for _ in range(5):
+        randomcollectorid = random.choice(list(collectors.keys()))
+        randomcollector = armis_object.get_collector(randomcollectorid)
+        assert randomcollectorid == randomcollector["collectorNumber"]

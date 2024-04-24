@@ -3,4 +3,4 @@
 
 __title__ = "armis"
 __description__ = "Connect and perform actions with the Armis cloud."
-__version__ = "1.0.17"
+__version__ = "1.0.18"

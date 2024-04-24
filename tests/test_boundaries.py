@@ -6,25 +6,24 @@ import random
 import pytest
 from test_fixture import armis_object
 
-boundarylist = (1, 2, 10, 77)
+
+@pytest.fixture()
+def boundaries(armis_object):
+    return armis_object.get_boundaries()
 
 
-def test_boundarycount(armis_object):
-    bc = armis_object.get_boundaries_count()
-    assert bc > 0
+def test_get_boundaries(boundaries):
+    assert len(list(boundaries.keys())) > 0
 
 
-def test_get_boundary_by_id(armis_object):
-    for boundary_id in boundarylist:
-        x = armis_object.get_boundary(boundary_id=boundary_id)
-        assert len(x) > 0
+def test_get_boundary_by_id(boundaries, armis_object):
+    boundaryids = list(boundaries.keys())
+
+    for _ in range(5):
+        boundaryid = random.choice(boundaryids)
+        assert boundaryid == armis_object.get_boundary(boundary_id=boundaryid)["id"]
 
 
 def test_get_boundary_by_id_blank(armis_object):
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         armis_object.get_boundary()
-
-
-def test_get_boundaries(armis_object):
-    x = armis_object.get_boundaries()
-    assert len(x.keys()) > 0

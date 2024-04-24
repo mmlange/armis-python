@@ -393,28 +393,7 @@ class ArmisCloud:
 
         self.log.debug("END")
 
-    def get_boundaries_count(self) -> int:
-        """
-        Get a count of boundaries.
-
-        Returns
-        -------
-        boundaries_count : int
-            A count of the number of boundaries.
-        """
-        self.log.info("get_boundaries_count")
-        url = self.TENANT_BASE_URL / "v1" / "boundaries" / "/"
-        self.log.debug("url=%s", str(url))
-        url.args["length"] = 1
-        url.args["includeTotal"] = "true"
-        boundaries_count_request = self._api_http_request(method="GET", url=url)
-        boundaries_count = int(
-            self._json_decoder.decode(boundaries_count_request.text)["data"]["total"],
-        )
-        self.log.debug("boundaries_count=%s", str(boundaries_count))
-        return boundaries_count
-
-    def get_boundary(self, **kwargs):
+    def get_boundary(self, boundary_id: int) -> dict:
         """Get a boundary given a boundary_id.
 
         Parameters
@@ -430,7 +409,7 @@ class ArmisCloud:
         -----
         The cloud must be running at version >= R-23.3-S182.
         """
-        boundary_id = kwargs.get("boundary_id", None)
+        # boundary_id = kwargs.get("boundary_id", None)
 
         if boundary_id is None:
             raise ValueError("Need a boundary_id to continue")
@@ -454,7 +433,7 @@ class ArmisCloud:
         boundaries : dict
             A dict of boundaries with the boundary_id as the key
         """
-        url = self.TENANT_BASE_URL / "v1/boundaries" / "/"
+        url = self.TENANT_BASE_URL / "v1/boundaries/"
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
         url.args["includeTotal"] = "true"
@@ -571,45 +550,6 @@ class ArmisCloud:
             self.log.debug(boundary_update.text)
             raise Exception("boundary update issue", boundary_update.text)
 
-    def get_devices_count(self, **kwargs: dict) -> int:
-        """Get count of devices matching ASQ.
-
-        Parameters
-        ----------
-        asq : str
-            ASQ to execute.
-
-        Returns
-        -------
-        device_count : int
-            Count of devices matching ASQ.
-        """
-        asq = kwargs.get("asq", None)
-
-        if asq is None:
-            raise ValueError("asq is required")
-        self.log.info("asq=%s", asq)
-
-        url = self.TENANT_BASE_URL / "v1" / "devices" / "/"
-        url.args["search"] = asq
-        url.args["length"] = 1
-        url.args["from"] = 0
-        url.args["fields"] = "id"
-        self.log.debug("url=%s", str(url))
-
-        inventory_total_request = self._api_http_request(method="GET", url=url)
-        if inventory_total_request.status_code != httpx.codes.OK:
-            raise Exception(
-                "inventory issue",
-                inventory_total_request.text,
-            )  # pragma: no cover
-
-        inventory_total = int(
-            self._json_decoder.decode(inventory_total_request.text)["data"]["total"],
-        )
-        self.log.info("inventory_total=%s", str(inventory_total))
-        return inventory_total
-
     def get_devices(self, **kwargs: dict) -> list:
         """Get devices from inventory matching ASQ.
 
@@ -634,7 +574,7 @@ class ArmisCloud:
         fields_wanted = kwargs.get("fields_wanted", [])
         self.log.info("fields_wanted=%s", str(",".join(fields_wanted)))
 
-        url = self.TENANT_BASE_URL / "v1" / "devices" / "/"
+        url = self.TENANT_BASE_URL / "v1" / "devices/"
         url.args["search"] = asq
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
@@ -786,6 +726,45 @@ class ArmisCloud:
 
         return inventory
 
+    def get_devices_count(self, **kwargs: dict) -> int:
+        """Get count of devices matching ASQ.
+
+        Parameters
+        ----------
+        asq : str
+            ASQ to execute.
+
+        Returns
+        -------
+        device_count : int
+            Count of devices matching ASQ.
+        """
+        asq = kwargs.get("asq", None)
+
+        if asq is None:
+            raise ValueError("asq is required")
+        self.log.info("asq=%s", asq)
+
+        url = self.TENANT_BASE_URL / "v1" / "devices/"
+        url.args["search"] = asq
+        url.args["length"] = 1
+        url.args["from"] = 0
+        url.args["fields"] = "id"
+        self.log.debug("url=%s", str(url))
+
+        inventory_total_request = self._api_http_request(method="GET", url=url)
+        if inventory_total_request.status_code != httpx.codes.OK:
+            raise Exception(
+                "inventory issue",
+                inventory_total_request.text,
+            )  # pragma: no cover
+
+        inventory_total = int(
+            self._json_decoder.decode(inventory_total_request.text)["data"]["total"],
+        )
+        self.log.info("inventory_total=%s", str(inventory_total))
+        return inventory_total
+
     def tag_device(self, **kwargs: dict) -> None:
         """Add or remove a device from a deviceid.
 
@@ -857,25 +836,6 @@ class ArmisCloud:
 
         return tag_device_update.text
 
-    def get_collectors_count(self) -> int:
-        """Get a count of collectors in the inventory.
-
-        Returns
-        -------
-        collectors_count : int
-            Count of collectors in the inventory.
-
-
-        """
-        url = self.TENANT_BASE_URL / "v1/collectors" / "/"
-        url.args["length"] = 1
-        collectors_count_request = self._api_http_request(method="GET", url=url)
-        collectors_count = int(
-            self._json_decoder.decode(collectors_count_request.text)["data"]["total"],
-        )
-        self.log.debug("collectors_count=%s", str(collectors_count))
-        return collectors_count
-
     def get_collector(self, collector_id: int) -> dict:
         """Get a collector given the collector_id.
 
@@ -901,7 +861,7 @@ class ArmisCloud:
 
         return self._json_decoder.decode(collector_request.text)["data"]
 
-    def get_collectors(self):
+    def get_collectors(self) -> dict:
         """Get a dictionary of collectors.
 
         Returns
@@ -910,7 +870,7 @@ class ArmisCloud:
             A dictionary of collectors.
 
         """
-        url = self.TENANT_BASE_URL / "v1" / "collectors" / "/"
+        url = self.TENANT_BASE_URL / "v1" / "collectors/"
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
         collectors_inventory = {}
@@ -952,24 +912,49 @@ class ArmisCloud:
             collectors_inventory = dict(sorted(collectors_inventory.items()))
         return collectors_inventory
 
-    def get_integrations_count(self) -> int:
-        """Get count of integrations.
+    def get_integration(self, integration_id: int):
+        """Get an integration given an integration_id.
+
+        Parameters
+        ----------
+        integration_id : int
+            Desired integration_id
 
         Returns
         -------
-        integrations_count : int
-            A count of integrations.
+        integration : dict
+            a dictionary of the requested integration
 
         Notes
         -----
         This method requires v2 of the API call which is only available in the
         Armis Cloud version >= R-24.0.
         """
-        url = self.TENANT_BASE_URL / "v2" / "integrations" / "/"
-        url.args["length"] = 1
-        self.log.debug("url=%s", str(url))
-        count_request = self._api_http_request(method="GET", url=url)
-        return int(self._json_decoder.decode(count_request.text)["data"]["total"])
+        if integration_id is None:
+            raise ValueError("an integration_id is required")
+
+        url = self.TENANT_BASE_URL / "v2" / "integrations" / str(integration_id)
+        url = url / "/"
+        url.args = {}
+
+        integration_details = self._api_http_request(method="GET", url=url)
+
+        if integration_details.status_code == httpx.codes.NOT_FOUND:
+            self.log.debug("integration was not found")
+            self.log.debug("text=%s", integration_details.text)
+            return {}
+
+        if integration_details.status_code != httpx.codes.OK:
+            self.log.critical("STATUS CODE=%s", integration_details.status_code)
+            self.log.debug(
+                "status_code=%s",
+                str(integration_details.status_code),
+            )
+            self.log.debug("text=%s", integration_details.text)
+            raise Exception("integration_details issue", integration_details.text)
+
+        integration = self._json_decoder.decode(integration_details.text)["data"][0]
+        return integration
 
     def get_integrations(self) -> dict:
         """Get a list of integrations.
@@ -1027,46 +1012,93 @@ class ArmisCloud:
 
         return []
 
-    def get_integration(self, integration_id: int):
-        """Get an integration given an integration_id.
-
-        Parameters
-        ----------
-        integration_id : int
-            Desired integration_id
+    def get_integrations_count(self) -> int:
+        """Get count of integrations.
 
         Returns
         -------
-        integration : dict
-            a dictionary of the requested integration
+        integrations_count : int
+            A count of integrations.
 
         Notes
         -----
         This method requires v2 of the API call which is only available in the
         Armis Cloud version >= R-24.0.
         """
-        if integration_id is None:
-            raise ValueError("an integration_id is required")
+        url = self.TENANT_BASE_URL / "v2" / "integrations/"
+        url.args["length"] = 1
+        self.log.debug("url=%s", str(url))
+        count_request = self._api_http_request(method="GET", url=url)
+        return int(self._json_decoder.decode(count_request.text)["data"]["total"])
 
-        url = self.TENANT_BASE_URL / "v2" / "integrations" / str(integration_id)
-        url = url / "/"
-        url.args = {}
+    def get_sites(self) -> dict:
+        """Get a list of sites.
 
-        integration_details = self._api_http_request(method="GET", url=url)
+        Returns
+        -------
+        sites : dict
+            A dict of sites.
 
-        if integration_details.status_code == httpx.codes.NOT_FOUND:
-            self.log.debug("integration was not found")
-            self.log.debug("text=%s", integration_details.text)
-            return {}
+        Notes
+        -----
+        Only applies to cloud version >= R-23.3-S182.
+        """
+        url = self.TENANT_BASE_URL / "v1/sites/"
+        url.args["from"] = 0
+        url.args["length"] = self.ARMIS_API_PAGE_SIZE
+        url.args["includeTotal"] = "true"
 
-        if integration_details.status_code != httpx.codes.OK:
-            self.log.critical("STATUS CODE=%s", integration_details.status_code)
-            self.log.debug(
-                "status_code=%s",
-                str(integration_details.status_code),
-            )
-            self.log.debug("text=%s", integration_details.text)
-            raise Exception("integration_details issue", integration_details.text)
+        sites = {}
+        while url.args["from"] is not None:
+            self.log.debug("url=%s", str(url))
+            sites_details = self._api_http_request(method="GET", url=url)
 
-        integration = self._json_decoder.decode(integration_details.text)["data"][0]
-        return integration
+            if sites_details.status_code != httpx.codes.OK:
+                self.log.critical("STATUS CODE != 200")
+                self.log.critical("status_code=%s", str(sites_details.status_code))
+                self.log.critical("text=%s", sites_details.text)
+
+            if "sites" in self._json_decoder.decode(sites_details.text)["data"]:
+                for site in self._json_decoder.decode(sites_details.text)["data"][
+                    "sites"
+                ]:
+                    sites[site["id"]] = site
+
+            url.args["from"] = self._json_decoder.decode(sites_details.text)["data"][
+                "next"
+            ]
+
+        return sites
+
+    def get_site(self, **kwargs) -> dict:
+        """Get a site with a given site_id.
+
+        Parameters
+        ----------
+        site_id : int
+            The site ID to fetch details about.
+
+        Returns
+        -------
+        dict
+            JSON data as a dict.
+        """
+        site_id = kwargs.get("site_id", None)
+
+        if site_id is None:
+            raise ValueError("site_id was not provided")
+
+        url = self.TENANT_BASE_URL / "v1" / "sites" / str(site_id) / "/"
+        self.log.debug("url=%s", str(url))
+
+        site_request = self._api_http_request(method="GET", url=url)
+        if site_request.status_code != 200:
+            self.log.critical("STATUS CODE !=200")
+            self.log.critical("status_code=%s", str(site_request.status_code))
+            self.log.critical("text=%s", site_request.text)
+            self.log.critical("continuing")
+            raise Exception("dashboard http response !=200")
+
+        if "data" in self._json_decoder.decode(site_request.text):
+            return self._json_decoder.decode(site_request.text)["data"]
+        return {}

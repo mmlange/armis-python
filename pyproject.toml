@@ -61,7 +61,7 @@ dependencies = [
   "python-dotenv"
 ]
 [tool.hatch.envs.default.scripts]
-test = "pytest -rExXsP --cov=armis --cov-report html:coverage_report/html {args:tests}"
+test = "pytest -rExXsP --cov=armis --cov-report html:.coverage_report/html {args:tests}"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
@@ -76,6 +76,7 @@ check = "mypy --install-types --non-interactive {args:src/armis tests}"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
+  ".coverage_report",
   "coverage_report",
   "docs/",
   "pytest.ini",
@@ -83,6 +84,11 @@ exclude = [
   ".github",
   "mkdocs.yml",
 ]
+
+[publish.index]
+disable = true
+
+
 
 [tool.coverage.run]
 source_pkgs = ["armis", "tests"]
@@ -102,7 +108,6 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
 
 [tool.ruff]
 exclude = [
