@@ -17,3 +17,10 @@ def test_get_collectors(armis_object, collectors):
         randomcollectorid = random.choice(list(collectors.keys()))
         randomcollector = armis_object.get_collector(randomcollectorid)
         assert randomcollectorid == randomcollector["collectorNumber"]
+
+
+def test_rename_collector(armis_object):
+    rn = random.randint(1, 23423423098)
+    newname = "Armis Virtual Collector 9159 - #" + str(rn)
+    result = armis_object.rename_collector(collector_id=9159, new_name=newname)
+    assert result["success"]

@@ -24,17 +24,17 @@ def test_get_integration(integrations, armis_object):
         assert randomintegrationid == randomintegration["id"]
 
 
-def test_get_integration_dne(armis_object, integrations):
+def test_get_integration_invalid(armis_object, integrations):
     integration_ids = sorted(list(integrations.keys()))
 
     # let's make up an integration_id that does not exist, i.e. not in
     # this set:
     # 0 >= valid integrations_ids >= max(list of integration_ids)
 
-    integrationid_dne = random.randint(
+    integrationid_invalid = random.randint(
         integration_ids[-1] * 2,
         integration_ids[-1] * 2222,
     )
 
-    integration_dne = armis_object.get_integration(integrationid_dne)
-    assert len(integration_dne) == 0
+    integration_invalid = armis_object.get_integration(integrationid_invalid)
+    assert len(integration_invalid) == 0

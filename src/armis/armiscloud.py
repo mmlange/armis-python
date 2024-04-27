@@ -353,8 +353,7 @@ class ArmisCloud:
                     raise err
 
                 self.log.debug("size of return text=%s", str(len(r.text)))
-                if len(r.text) < 1000:
-                    self.log.debug("return text=%s", r.text)
+                self.log.debug("return text=%s", r.text[:1000])
 
                 return r
 
@@ -371,7 +370,7 @@ class ArmisCloud:
         self.log.debug("remaining_time=%s", str(remaining_time))
 
         if remaining_time < 1_000:
-            self.log.debug("remaining_time < 1000")
+            self.log.debug("remaining_time <1000")
             self.log.debug("expires=%s", str(self._authorization_token_expiration))
             self.log.debug("now > _authorization_token_expiration")
             self.log.debug("_authorization_token expired, getting new one")
@@ -427,7 +426,7 @@ class ArmisCloud:
 
         Notes
         -----
-        The cloud must be running at version >= R-23.3-S182.
+        The cloud must be running at version >=R-23.3-S182.
         """
         self.log.debug("kwargs=%s", str(kwargs))
 
@@ -525,7 +524,7 @@ class ArmisCloud:
 
         Notes
         -----
-        The cloud must be running at version >= R-23.3-S182.
+        The cloud must be running at version >=R-23.3-S182.
         """
         if boundary_id is None:
             raise ValueError("Need a boundary_id to continue")
@@ -552,7 +551,7 @@ class ArmisCloud:
 
         Notes
         -----
-        The cloud must be running at version >= R-23.3-S182.
+        The cloud must be running at version >=R-23.3-S182.
         """
         url = self.TENANT_BASE_URL / "v1/boundaries/"
         url.args["from"] = 0
@@ -600,7 +599,7 @@ class ArmisCloud:
 
         Notes
         -----
-        The cloud must be running at version >= R-23.3-S182.
+        The cloud must be running at version >=R-23.3-S182.
         """
         self.log.debug("kwargs=%s", str(kwargs))
 
@@ -843,13 +842,14 @@ class ArmisCloud:
         url.args["search"] = asq
         url.args["from"] = 0
         url.args["length"] = self.ARMIS_API_PAGE_SIZE
+        url.args["fields"] = ",".join(fields_wanted)
 
         # NOTE:
         # From the API Guide v1.8:
-        # Iterating over a set of results it is recommended best practice to
+        # "Iterating over a set of results it is recommended best practice to
         # orderBy a fixed parameter (deviceId for example) in order to not to
         # miss data between pages. This is because the default order is by
-        # lastSeen, so results can change.
+        # lastSeen, so results can change."
         url.args["orderBy"] = "id"
 
         inventory = []
@@ -1118,7 +1118,7 @@ class ArmisCloud:
         Notes
         -----
         This method requires v2 of the API call which is only available in the
-        Armis Cloud version >= R - 24.0.
+        Armis Cloud version >=R-24.0.
         """
         if integration_id is None:
             raise ValueError("an integration_id is required")
@@ -1156,7 +1156,7 @@ class ArmisCloud:
         Notes
         -----
         This method requires v2 of the API call which is only available in the
-        Armis Cloud version >= R-24.0.
+        Armis Cloud version >=R-24.0.
         """
         url = self.TENANT_BASE_URL / "v2/integrations/"
         url.args["from"] = 0
@@ -1212,7 +1212,7 @@ class ArmisCloud:
         Notes
         -----
         This method requires v2 of the API call which is only available in the
-        Armis Cloud version >= R-24.0.
+        Armis Cloud version >=R-24.0.
         """
         url = self.TENANT_BASE_URL / "v2/integrations/"
         url.args["length"] = 1
@@ -1230,7 +1230,7 @@ class ArmisCloud:
 
         Notes
         -----
-        The cloud must be running at version >= R-23.3-S182.
+        The cloud must be running at version >=R-23.3-S182.
         """
         url = self.TENANT_BASE_URL / "v1/sites/"
         url.args["from"] = 0
@@ -1292,3 +1292,184 @@ class ArmisCloud:
         if "data" in self._json_decoder.decode(site_request.text):
             return self._json_decoder.decode(site_request.text)["data"]
         return {}
+
+    def delete_user(self, user_id_or_email):
+        """Delete a user given the user_id or email.
+
+        Parameters
+        ----------
+        user_id_or_email : str|int
+            A user_id (int) or email (str) to delete.
+
+        Returns
+        -------
+        delete_user_result : str
+            Text from the output of the delete action.
+        """
+        url = self.TENANT_BASE_URL / f"v1/users/{user_id_or_email}/"
+        self.log.debug("url=%s", str(url))
+
+        user_delete = self._api_http_request(method="DELETE", url=url)
+        self.log.debug("return text=%s", str(user_delete.text))
+        self.log.debug("status_code=%s", str(user_delete.status_code))
+        if user_delete.status_code != httpx.codes.OK:
+            self.log.info("FAILED USER UPDATE for user: %s", str(user_id_or_email))
+            self.log.debug(user_delete.text)
+            raise Exception("delete user issue", user_delete.text)
+
+        return self._json_decoder.decode(user_delete.text)
+
+    def edit_user(self, user_id_or_email: str | int, **kwargs: dict) -> dict:
+        """Edit a user given the user_id or email.
+
+        Parameters
+        ----------
+        user_id_or_email : str|int
+            user_id (int) or email (str) to change
+        email : str
+            email address of the user
+        location : str
+            Location of the user
+        name : str
+            Name of user
+        phone : str
+            Phone number of user
+        roleassignment : list
+            List of roles the user should be assigned to
+        title : str
+            Title of the user
+        username : str
+            username of the user
+
+        Returns
+        -------
+        user_update_result : dict
+            A dictionary of the edited user details
+        """
+        # attributes that are required: email, roleassignment, and username
+        # first use what was provided via the method and then fetch
+        # all missing data from the cloud
+
+        if len(kwargs) == 0:
+            raise ValueError("Need a field to be changed")
+
+        need_data_from_cloud = False
+
+        required_attributes = ["email", "roleAssignment", "username"]
+        optional_attributes = ["location", "name", "phone", "title"]
+        edit_user_dict = {}
+
+        if "@" in str(user_id_or_email):
+            edit_user_dict["email"] = user_id_or_email
+        else:
+            edit_user_dict["email"] = None
+
+        for required_attribute in required_attributes:
+            if edit_user_dict.get(required_attribute) is None:
+                edit_user_dict[required_attribute] = kwargs.get(
+                    required_attribute,
+                    None,
+                )
+        if None in list(edit_user_dict.values()):
+            need_data_from_cloud = True
+
+        if need_data_from_cloud:
+            try:
+                existinguser = self.get_user(user_id_or_email=user_id_or_email)
+            except RuntimeError as e:
+                raise RuntimeError(e)
+            for required_attribute in required_attributes:
+                if edit_user_dict[required_attribute] is None:
+                    edit_user_dict[required_attribute] = existinguser[
+                        required_attribute
+                    ]
+        for optional_attribute in optional_attributes:
+            optional_attribute_value = kwargs.get(optional_attribute, None)
+            if optional_attribute_value is not None:
+                edit_user_dict[optional_attribute] = optional_attribute_value
+
+        self.log.debug("edit_user_dict is now: %s", str(edit_user_dict))
+        # when updating, roleassignment and username are required
+        url = self.TENANT_BASE_URL / f"v1/users/{user_id_or_email}/"
+        user_update = self._api_http_request(
+            method="PATCH",
+            url=url,
+            json=edit_user_dict,
+        )
+        self.log.debug("return text=%s", str(user_update.text))
+        self.log.debug("status_code=%s", str(user_update.status_code))
+        if user_update.status_code != httpx.codes.OK:
+            self.log.info("FAILED USER UPDATE for user: %s", str(user_id_or_email))
+            self.log.debug(user_update.text)
+            raise Exception("edit user issue", user_update.text)
+
+        return self._json_decoder.decode(user_update.text)
+
+    def get_user(self, user_id_or_email, **kwargs):
+        """Get a user by user_id or email.
+
+        Parameters
+        ----------
+        user_id_or_email : str | int
+            The user_id or email of the user to retrieve.
+        fields: list
+            The list of fields to retrieve.
+
+        Returns
+        -------
+        userdetails: dict
+            A dictionary of user information.
+        """
+        if len(str(user_id_or_email)) < 1:
+            raise ValueError("missing user_id_or_email")
+
+        fields = kwargs.get("fields", [])
+        if isinstance(fields, str):
+            fields = [fields]
+
+        url = self.TENANT_BASE_URL / f"v1/users/{user_id_or_email}/"
+        if len(fields) > 0:
+            url.args["fields"] = ",".join(fields)
+
+        self.log.debug("url=%s", str(url))
+
+        user_details = self._api_http_request(method="GET", url=url)
+
+        if user_details.status_code != httpx.codes.OK:
+            self.log.critical("STATUS CODE !=200")
+            self.log.critical("status_code=%s", str(user_details.status_code))
+            self.log.critical("text=%s", user_details.text)
+            raise RuntimeError(user_details.text)
+
+        data = self._json_decoder.decode(user_details.text)
+        success_status = data["success"]
+        if success_status is True:
+            return data["data"]
+
+        raise RuntimeError(user_details.text)
+
+    def get_users(self) -> dict:
+        """Get a list of users.
+
+        Returns
+        -------
+        users : dict
+            A dictionary of users.
+        """
+        url = self.TENANT_BASE_URL / "v1/users/"
+        self.log.debug("url=%s", str(url))
+        users_details = self._api_http_request(method="GET", url=url)
+
+        if users_details.status_code != httpx.codes.OK:
+            self.log.critical("STATUS CODE !=200")
+            self.log.critical("status_code=%s", str(users_details.status_code))
+            self.log.critical("text=%s", users_details.text)
+            raise Exception("users_details issue", users_details.text)
+
+        users = {}
+        data = self._json_decoder.decode(users_details.text)
+        if "users" in data["data"]:
+            for user in data["data"]["users"]:
+                users[user["id"]] = user
+
+        return users

@@ -66,14 +66,6 @@ test = "pytest -rExXsP --cov=armis --cov-report html:.coverage_report/html {args
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
-[tool.hatch.envs.types]
-dependencies = [
-  "mypy>=1.0.0",
-]
-
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/armis tests}"
-
 [tool.hatch.build.targets.sdist]
 exclude = [
   "private*",
@@ -88,8 +80,6 @@ exclude = [
 
 [publish.index]
 disable = true
-
-
 
 [tool.coverage.run]
 source_pkgs = ["armis", "tests"]

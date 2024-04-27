@@ -85,7 +85,6 @@ print(result)
 ```
 
 ## Collector Operations
-
 Get a list of collectors:
 
 ```python
@@ -102,7 +101,29 @@ myimportantcollector = a.get_collector(collector_id=1234)
 print(myimportantcollector)
 
 {'clusterId': 0, 'collectorNumber': 1234, 'defaultGateway': '10.0.0.1', 'httpsProxyRedacted': '', 'ipAddress': '10.0.0.2', 'lastSeen': '2019-05-15T13:00:00+00:00', 'macAddress': '00:12:34:56:78:90', 'name': 'Collector 1234', 'status': 'Offline', 'subnet': '10.0.0.0/24', 'type': 'Physical'}
+```
 
+## User Operations
+Get a list of users:
+```python
+users = a.get_users()
+print(users)
+
+{12: {'email': 'johndoe@example.com', 'id': 12, 'isActive': True, 'lastLoginTime': '2019-05-15T13:01:23.456789', 'location': '', 'name': 'John Doe', 'phone': '', 'povEulaSigningDate': None, 'prodEulaSigningDate': None, 'reportPermissions': None, 'role': None, 'roleAssignment': [{'name': ['Admin']}], 'title': '', 'twoFactorAuthentication': False, 'username': 'johndoe'}}
+```
+
+Get the details for a specific user, either by userid or email address:
+```python
+a_user = a.get_user(12)
+{'email': 'johndoe@example.com', 'id': 12, 'isActive': True, 'lastLoginTime': '2019-05-15T13:01:23.456789', 'location': '', 'name': 'John Doe', 'phone': '', 'povEulaSigningDate': None, 'prodEulaSigningDate': None, 'reportPermissions': None, 'role': None, 'roleAssignment': [{'name': ['Admin']}], 'title': '', 'twoFactorAuthentication': False, 'username': 'johndoe'}
+
+a_user = a.get_user('johndoe@example.com')
+{'email': 'johndoe@example.com', 'id': 12, 'isActive': True, 'lastLoginTime': '2019-05-15T13:01:23.456789', 'location': '', 'name': 'John Doe', 'phone': '', 'povEulaSigningDate': None, 'prodEulaSigningDate': None, 'reportPermissions': None, 'role': None, 'roleAssignment': [{'name': ['Admin']}], 'title': '', 'twoFactorAuthentication': False, 'username': 'johndoe'}
+```
+
+Delete a user by user_id or email address:
+```python
+a.delete_user('12')
 ```
 
 ## Features
