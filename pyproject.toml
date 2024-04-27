@@ -123,7 +123,7 @@ exclude = [
   "venv",
   '__pycache__',
 ]
-target-version = "py311"
+target-version = "py38"
 
 
 [tool.ruff.lint]
@@ -218,3 +218,4 @@ max-locals = 30
 max-public-methods = 30
 max-branches = 15
 max-statements = 100
+

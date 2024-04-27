@@ -9,7 +9,7 @@ from test_fixture import armis_object
 
 @pytest.fixture(scope="module")
 def device_asq():
-    return 'in:devices timeFrame:"1 Minutes"'
+    return 'in:devices timeFrame:"10 Minutes"'
 
 
 def test_get_devices_count(armis_object, device_asq):
@@ -40,7 +40,7 @@ def test_get_devices_mismatched_fields(armis_object, device_asq):
     with pytest.raises(ValueError):
         armis_object.get_devices(
             asq=device_asq,
-            fields_wanted=["not", "valid", "fields"],
+            fields_wanted=["id", "not", "valid", "fields"],
         )
 
 

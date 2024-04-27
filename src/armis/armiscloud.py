@@ -11,6 +11,7 @@ import math
 import pathlib as pl
 import tempfile
 import warnings
+from typing import Union
 
 import httpx
 import msgspec
@@ -154,7 +155,7 @@ class ArmisCloud:
 
     @staticmethod
     def _ceiling_up(number, nearest: int):
-        if not isinstance(number, (int, float)):  # noqa: UP038
+        if not isinstance(number, (int, float)):
             raise ValueError("number " + str(number) + " is not an int or float")
         if nearest is None:
             raise ValueError("nearest was not provided")
@@ -1319,7 +1320,7 @@ class ArmisCloud:
 
         return self._json_decoder.decode(user_delete.text)
 
-    def edit_user(self, user_id_or_email: str | int, **kwargs: dict) -> dict:
+    def edit_user(self, user_id_or_email: Union[str, int], **kwargs: dict) -> dict:
         """Edit a user given the user_id or email.
 
         Parameters
