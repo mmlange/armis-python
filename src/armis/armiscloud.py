@@ -3,10 +3,11 @@
 # SPDX-FileCopyrightText: 2024-present Matthew Lange <mmlange@gmail.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 import contextlib
 import gzip
 import logging
-import logging.handlers
 import math
 import pathlib as pl
 import tempfile
@@ -141,6 +142,7 @@ class ArmisCloud:
         self.TENANT_BASE_URL.scheme = "https"
         self.TENANT_BASE_URL.host = tenant_hostname
         self.TENANT_BASE_URL.path = "/api/"
+        self.log.debug("TENANT_BASE_URL=%s", str(self.TENANT_BASE_URL))
 
         # Note that if you're making multiple calls to decode, it's more efficient
         # to create a Decoder once and use the Decoder.decode method instead.
@@ -483,7 +485,7 @@ class ArmisCloud:
         if boundary_create.status_code != httpx.codes.CREATED:
             self.log.info("FAILED boundary create for name: %s", str(name))
             self.log.debug(boundary_create.text)
-            raise Exception("boundary update issue", boundary_create.text)
+            raise RuntimeError("boundary update issue", boundary_create.text)
 
         return self._json_decoder.decode(boundary_create.text)
 
@@ -505,7 +507,7 @@ class ArmisCloud:
         if boundary_delete.status_code != httpx.codes.NO_CONTENT:
             self.log.critical("STATUS CODE != 204")
             self.log.critical("status_code=%s", str(boundary_delete.status_code))
-            raise Exception("boundary_delete issue", boundary_delete.text)
+            raise RuntimeError("boundary_delete issue", boundary_delete.text)
 
         if boundary_delete.status_code == httpx.codes.NO_CONTENT:
             return {"success": True}
@@ -669,7 +671,7 @@ class ArmisCloud:
                 str(boundary_id),
             )
             self.log.debug(boundary_update.text)
-            raise Exception("boundary update issue", boundary_update.text)
+            raise RuntimeError("boundary update issue", boundary_update.text)
 
     def get_collector(self, collector_id: int) -> dict:
         """Get a collector given the collector_id.
@@ -693,7 +695,7 @@ class ArmisCloud:
         self.log.debug("url=%s", str(url))
         collector_request = self._api_http_request(method="GET", url=url)
         if collector_request.status_code != httpx.codes.OK:
-            raise Exception("collector issue", collector_request.text)
+            raise RuntimeError("collector issue", collector_request.text)
 
         return self._json_decoder.decode(collector_request.text)["data"]
 
@@ -811,7 +813,7 @@ class ArmisCloud:
                 new_name,
             )
             self.log.debug(collector_update.text)
-            raise Exception("collector rename issue", collector_update.text)
+            raise RuntimeError("collector rename issue", collector_update.text)
 
         return self._json_decoder.decode(collector_update.text)
 
@@ -1020,7 +1022,7 @@ class ArmisCloud:
 
         inventory_total_request = self._api_http_request(method="GET", url=url)
         if inventory_total_request.status_code != httpx.codes.OK:
-            raise Exception(
+            raise RuntimeError(
                 "inventory issue",
                 inventory_total_request.text,
             )  # pragma: no cover
@@ -1099,9 +1101,82 @@ class ArmisCloud:
         if tag_device_update.status_code != httpx.codes.OK:
             self.log.info("FAILED DEVICE TAG for device ID: %s", str(device_id))
             self.log.debug(tag_device_update.text)
-            raise Exception("tag_device_update issue", tag_device_update.text)
+            raise RuntimeError("tag_device_update issue", tag_device_update.text)
 
         return tag_device_update.text
+
+    def create_integration(self, **kwargs: dict) -> dict:
+        """Create an integration.
+
+        Parameters
+        ----------
+        collector_id : int
+            ID of the collector
+        integration_name : str
+            name of the integration
+        integration_type : str
+            the type of integration
+        integration_params : dict
+            integration-specific parameters
+
+        Returns
+        -------
+        status : dict
+            Status of action as returned by the cloud
+
+        Notes
+        -----
+        This method requires v2 of the API call which is only available in the
+        Armis Cloud version >=R-24.0.
+
+        Examples
+        --------
+        From the Armis online Swagger documentation, the payload looks like this:
+
+        ```
+        {
+            "collectorId": 1,
+            "instance": "My Integration",
+            "name": "SPAN/TAP",
+            "params": {"sniff_interface": "eno1"},
+        }
+        ```
+
+        """
+        collector_id = kwargs.get("collector_id", None)
+        integration_name = kwargs.get("integration_name", None)
+        integration_type = kwargs.get("integration_type", None)
+        integration_params = kwargs.get("integration_params", None)
+
+        if (
+            collector_id is None
+            or integration_name is None
+            or integration_params is None
+            or integration_type is None
+        ):
+            raise ValueError(
+                "no collector_id, integration_name, integrations_params, "
+                "or integration_type",
+            )
+
+        url = self.TENANT_BASE_URL / "v2/integrations/"
+
+        # from the Armis API documentation
+        integration_payload = {
+            "collectorId": collector_id,
+            "instance": integration_name,
+            "name": integration_type,
+            "params": integration_params,
+        }
+
+        self.log.debug("data to be posted=%s", str(integration_payload))
+        create_integration_request = self._api_http_request(
+            method="POST",
+            url=url,
+            json=integration_payload,
+        )
+
+        return self._json_decoder.decode(create_integration_request.text)
 
     def get_integration(self, integration_id: int):
         """Get an integration given an integration_id.
@@ -1141,7 +1216,7 @@ class ArmisCloud:
                 str(integration_details.status_code),
             )
             self.log.debug("text=%s", integration_details.text)
-            raise Exception("integration_details issue", integration_details.text)
+            raise RuntimeError("integration_details issue", integration_details.text)
 
         integration = self._json_decoder.decode(integration_details.text)["data"][0]
         return integration  # noqa: RET504
@@ -1185,7 +1260,10 @@ class ArmisCloud:
                     str(integrations_details.status_code),
                 )
                 self.log.critical("text=%s", integrations_details.text)
-                raise Exception("integrations_details issue", integrations_details.text)
+                raise RuntimeError(
+                    "integrations_details issue",
+                    integrations_details.text,
+                )
 
             for integration in self._json_decoder.decode(integrations_details.text)[
                 "data"
@@ -1220,6 +1298,207 @@ class ArmisCloud:
         self.log.debug("url=%s", str(url))
         count_request = self._api_http_request(method="GET", url=url)
         return int(self._json_decoder.decode(count_request.text)["data"]["total"])
+
+    def delete_integration(self, integration_id) -> dict:
+        """Delete an integration given the integration_id.
+
+        Parameters
+        ----------
+        integration_id : int
+            An integration_id to delete.
+
+        Returns
+        -------
+        delete_integration_result : dict
+            Result of the delete action, directly from the cloud.
+        """
+        url = self.TENANT_BASE_URL / f"v2/integrations/{integration_id}/"
+        self.log.debug("url=%s", url)
+        integration_delete = self._api_http_request(method="DELETE", url=url)
+        if integration_delete.status_code != httpx.codes.OK:
+            self.log.critical("STATUS CODE !=200")
+            self.log.critical("status_code=%s", str(integration_delete.status_code))
+            self.log.critical("text=%s", integration_delete.text)
+            raise RuntimeError("integration_details issue", integration_delete.text)
+
+        return self._json_decoder.decode(integration_delete.text)
+
+    def get_search(self, asq: str, **kwargs: dict) -> dict:
+        """Returns search result for given ASQ string.
+
+        Parameters
+        ----------
+        asq : str
+            ASQ search string
+        fields_wanted : list
+            List of fields wanted.
+
+        Returns
+        -------
+        records: list
+            Records matching ASQ
+
+        Notes
+        -----
+        This is different from the `get_devices` method, which only allows
+        you to retrieve devices.  This method allows you to retrieve data
+        with any valid ASQ, including records from `in:devices` queries.
+        """
+        get_search_start = pendulum.now()
+
+        self.log.info("asq=%s", asq)
+        fields_wanted: list = kwargs.get("fields_wanted", [])
+        if isinstance(fields_wanted, str):
+            fields_wanted = [fields_wanted]
+        self.log.info("fields_wanted=%s", str(",".join(fields_wanted)))
+
+        url = self.TENANT_BASE_URL / "v1/search/"
+        url.args["aql"] = asq
+        url.args["from"] = 0
+        url.args["length"] = self.ARMIS_API_PAGE_SIZE
+
+        if len(fields_wanted) > 0:
+            url.args["fields"] = ",".join(fields_wanted)
+
+        records = []
+        records_total = self.get_search_count(asq=asq)
+        remaining_time = -1
+
+        filenames = []
+        filenumber = 1
+
+        while url.args["from"] is not None:
+            self.log.info(
+                "fetching %s-%s of a total of %s",
+                str(url.args["from"]),
+                str(url.args["from"] + self.ARMIS_API_PAGE_SIZE),
+                str(records_total),
+            )
+            search_details = self._api_http_request(method="GET", url=url)
+
+            if search_details.status_code != httpx.codes.OK:
+                self.log.critical("STATUS CODE !=200")
+                self.log.critical("status_code=%s", str(search_details.status_code))
+                self.log.critical("text=%s", search_details.text)
+                self.log.critical("continuing")
+                continue
+
+            data = self._json_decoder.decode(search_details.text)
+            totalresults = data["data"]["total"]
+            if totalresults == 0:
+                return []
+
+            if len(data["data"]["results"]) > 0:
+                fetchedcolumns = list(data["data"]["results"][0].keys())
+                self.log.debug("Fetched columns=%s", str(fetchedcolumns))
+                setdiff = set(fields_wanted).difference(fetchedcolumns)
+                if len(setdiff) > 0:
+                    self.log.info(
+                        "Fields missing from wanted columns=%s",
+                        ",".join(list(setdiff)),
+                    )
+                    raise ValueError(
+                        "Fields wanted="
+                        + ",".join(fields_wanted)
+                        + "\nFields fetched="
+                        + ",".join(fetchedcolumns)
+                        + "\nFields missing from wanted columns="
+                        + ",".join(list(setdiff)),
+                    )
+            else:
+                self.log.debug("no data, data=%s", str(data))
+                return []
+
+            now = pendulum.now()
+            filename = pl.Path(
+                str(self.temporary_directory.name)
+                + "/"
+                + f"search_results_{now.float_timestamp}.json.gz",
+            )
+            self.log.info("search_results filename=%s", str(filename))
+            # using default zlib compression level (i.e. -1 AKA 6)
+            filename.write_bytes(gzip.compress(search_details.content))
+            filenames.append(filename)
+            filenumber += 1
+
+            now = pendulum.now()
+            self.log.debug("now=%s", str(now))
+            self.log.debug("get_search_start=%s", str(get_search_start))
+
+            elapsed_time = now.timestamp() - get_search_start.timestamp()
+            self.log.debug("elapsed_time=%s", str(elapsed_time))
+
+            if url.args["from"] > 0:
+                time_per_record = elapsed_time / url.args["from"]
+                self.log.debug("time_per_record=%s", str(time_per_record))
+
+                remaining_records = records_total - url.args["from"]
+                self.log.debug("remaining_records=%s", str(remaining_records))
+
+                remaining_time = remaining_records * time_per_record
+                self.log.debug("remaining_time=%s", str(remaining_time))
+
+            if remaining_time < 0:
+                estimated_end_time = now
+            else:
+                estimated_end_time = now.add(seconds=remaining_time)
+
+            self.log.info("estimated_end_time=%s", str(estimated_end_time))
+
+            url.args["from"] = data["data"]["next"]
+
+        # reproduce inventory here
+        for filename in filenames:
+            filename = pl.Path(filename)
+            self.log.info("reading filename=%s", str(filename.name))
+            j = self._json_decoder.decode(gzip.decompress(filename.read_bytes()))
+            self.log.info("appending %s records", str(len(j["data"])))
+            records.extend(j["data"]["results"])
+
+        self.log.debug("records size=%s", str(len(records)))
+
+        # clean up tmpdirectory
+        for filename in filenames:
+            filename = pl.Path(filename)
+            filename.unlink(missing_ok=True)
+
+        if len(records) > 0:
+            return records
+
+        return []
+
+    def get_search_count(self, asq: str) -> int:
+        """Get a count of records using ASQ.
+
+        Parameters
+        ----------
+        asq : str
+            ASQ to search for records.
+
+        Returns
+        -------
+        count: int
+            A count of records matching ASQ.
+        """
+        self.log.info("asq=%s", asq)
+        url = self.TENANT_BASE_URL / "v1/search/"
+
+        # Armis still calls this AQL in their API
+        url.args["aql"] = asq
+        url.args["length"] = 1
+        url.args["from"] = 0
+        url.args["fields"] = "id"
+        self.log.debug("url=%s", str(url))
+
+        search_total_request = self._api_http_request(method="GET", url=url)
+        if search_total_request.status_code != httpx.codes.OK:
+            raise RuntimeError("search retults issue", search_total_request.text)
+
+        search_total = int(
+            self._json_decoder.decode(search_total_request.text)["data"]["total"],
+        )
+        self.log.info("search_total=%s", str(search_total))
+        return search_total
 
     def get_sites(self) -> dict:
         """Get a list of sites.
@@ -1288,7 +1567,7 @@ class ArmisCloud:
             self.log.critical("status_code=%s", str(site_request.status_code))
             self.log.critical("text=%s", site_request.text)
             self.log.critical("continuing")
-            raise Exception("dashboard http response !=200")
+            raise RuntimeError("dashboard http response !=200")
 
         if "data" in self._json_decoder.decode(site_request.text):
             return self._json_decoder.decode(site_request.text)["data"]
@@ -1316,7 +1595,7 @@ class ArmisCloud:
         if user_delete.status_code != httpx.codes.OK:
             self.log.info("FAILED USER UPDATE for user: %s", str(user_id_or_email))
             self.log.debug(user_delete.text)
-            raise Exception("delete user issue", user_delete.text)
+            raise RuntimeError("delete user issue", user_delete.text)
 
         return self._json_decoder.decode(user_delete.text)
 
@@ -1378,7 +1657,7 @@ class ArmisCloud:
             try:
                 existinguser = self.get_user(user_id_or_email=user_id_or_email)
             except RuntimeError as e:
-                raise RuntimeError(e)
+                raise RuntimeError(e) from e
             for required_attribute in required_attributes:
                 if edit_user_dict[required_attribute] is None:
                     edit_user_dict[required_attribute] = existinguser[
@@ -1402,7 +1681,7 @@ class ArmisCloud:
         if user_update.status_code != httpx.codes.OK:
             self.log.info("FAILED USER UPDATE for user: %s", str(user_id_or_email))
             self.log.debug(user_update.text)
-            raise Exception("edit user issue", user_update.text)
+            raise RuntimeError("edit user issue", user_update.text)
 
         return self._json_decoder.decode(user_update.text)
 
@@ -1465,7 +1744,7 @@ class ArmisCloud:
             self.log.critical("STATUS CODE !=200")
             self.log.critical("status_code=%s", str(users_details.status_code))
             self.log.critical("text=%s", users_details.text)
-            raise Exception("users_details issue", users_details.text)
+            raise RuntimeError("users_details issue", users_details.text)
 
         users = {}
         data = self._json_decoder.decode(users_details.text)

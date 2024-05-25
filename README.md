@@ -3,10 +3,19 @@
 <p align="center"><strong>armis</strong> <em>- A Python library for interacting with the Armis cloud.</em></p>
 
 <p align="center">
-<a href="https://github.com/mmlange/armis-python/actions">
-    <img src="https://github.com/mmlange/armis-python/actions/workflows/testsuite.yml/badge.svg" alt="Test Suite">
-</a>
+<img src="https://img.shields.io/pypi/l/armis?style=flat-square">
+<img src="https://img.shields.io/pypi/pyversions/armis?style=flat-square">
+<img src="https://img.shields.io/librariesio/release/pypi/armis?style=flat-square">
+<img src="https://img.shields.io/github/last-commit/mmlange/armis-python?style=flat-square">
+<a href="https://github.com/mmlange/armis-python/actions"><img src="https://img.shields.io/github/actions/workflow/status/mmlange/armis-python/testsuite.yml?style=flat-square"></a>
+<a href="https://www.pypi.com/projects/armis/"><img src="https://img.shields.io/pypi/v/armis?style=flat-square&logo=python"></a>
+<a href="https://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square"></a>
+
+
 </p>
+
+
+
 
 **armis** is a Python client library for interacting with the Armis cloud.  It connects using **HTTP/2** by default,
 falling back to **HTTP/1.1** when necessary.  Python 3.8+ is supported.
@@ -43,6 +52,25 @@ devices = a.get_devices(
 print(devices)
 
 [{"id": 15, "ipAddress": "10.1.2.3", "name": "super-pc", "firstSeen": "2019-05-15T13:00:00+00:00"}]
+```
+
+## Queries
+If you need to execute ASQ beyond what `get_devices` gives you, use `get_search`:
+```python
+activities = armis_object.get_search(
+    asq='in:activity timeFrame:"1 Hours"',
+    fields_wanted=["activityUUID"],
+)
+
+print(activities)
+[
+  {
+    "activityUUID": "abc12345678901234567"
+  },
+  {
+    "activityUUID": "def12345678901234567"
+  }
+]
 ```
 
 ## Boundary Operations
@@ -102,6 +130,50 @@ print(myimportantcollector)
 
 {'clusterId': 0, 'collectorNumber': 1234, 'defaultGateway': '10.0.0.1', 'httpsProxyRedacted': '', 'ipAddress': '10.0.0.2', 'lastSeen': '2019-05-15T13:00:00+00:00', 'macAddress': '00:12:34:56:78:90', 'name': 'Collector 1234', 'status': 'Offline', 'subnet': '10.0.0.0/24', 'type': 'Physical'}
 ```
+
+## Integration Operations
+Get a list of integrations:
+
+```python
+integrations = a.get_integrations()
+print(integrations)
+[{"changeTime":1715778000000,"collectorId":1234,"creationTime":1715778000000,"currentState":null,"enforcementLists":[],"id":20,"instance":"SPAN eno5","integrationState":"ACTIVE","lastRunEnd":null,"name":"SPAN/TAP","params":{"sniff_interface":"eno5"}},{"changeTime":1715778000000,"collectorId":1234,"creationTime":1715778000000,"currentState":null,"enforcementLists":[],"id":21,"instance":"SPAN eno6","integrationState":"ACTIVE","lastRunEnd":null,"name":"SPAN/TAP","params":{"sniff_interface":"eno6"}}]
+
+```
+
+Get the details for a specific integration:
+
+```python
+integration = a.get_integration(20)
+print(integration)
+
+{"changeTime":1715778000000,"collectorId":1234,"creationTime":1715778000000,"currentState":null,"enforcementLists":[],"id":20,"instance":"SPAN eno5","integrationState":"ACTIVE","lastRunEnd":null,"name":"SPAN/TAP","params":{"sniff_interface":"eno5"},"statistics":null}
+
+```
+
+Create an integration:
+
+```python
+newintegration = a.create_integration(
+    collector_id=20,
+    integration_name="collector 20 capture on eno6",
+    integration_type="SWITCH",
+    integration_params={"sniff_interface": "eno5"}
+)
+
+print(newintegration)
+{"data":{"changeTime":1715778000000,"collectorId":20,"creationTime":1715778000000,"currentState":null,"enforcementLists":[],"id":1234,"instance":"collector 20 capture on eno6","integrationState":"ACTIVE","lastRunEnd":null,"name":"SPAN/TAP","params":{"sniff_interface":"eno6"},"statistics":null},"success":true}
+```
+
+Delete an integration:
+
+```python
+result = a.delete_integration(20)
+print(result)
+{'success': True}
+
+```
+
 
 ## User Operations
 Get a list of users:

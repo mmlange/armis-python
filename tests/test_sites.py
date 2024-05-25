@@ -7,7 +7,7 @@ import pytest
 from test_fixture import armis_object
 
 
-@pytest.fixture()
+@pytest.fixture
 def sitelist(armis_object):
     return armis_object.get_sites()
 

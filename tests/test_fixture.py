@@ -3,8 +3,9 @@
 import pathlib as pl
 
 import pytest
-from armis import ArmisCloud
 from dotenv import dotenv_values
+
+from armis import ArmisCloud
 
 envfile = pl.Path.home() / ".env"
 config = dotenv_values(envfile)

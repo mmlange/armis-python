@@ -38,3 +38,32 @@ def test_get_integration_invalid(armis_object, integrations):
 
     integration_invalid = armis_object.get_integration(integrationid_invalid)
     assert len(integration_invalid) == 0
+
+
+@pytest.fixture
+def integration(armis_object):
+    random_number = random.randint(0, 939393339)
+    random_name = f"Test Integration #{random_number}"
+    x = armis_object.create_integration(
+        collector_id=9157,
+        integration_name=random_name,
+        integration_type="SWITCH",
+        integration_params={"sniff_interface": "eno5"},
+    )
+    return x
+
+
+def test_create_integration(integration):
+    integration_id = integration["data"]["id"]
+    print("integration_id=", integration_id)
+
+    assert integration_id > 0
+
+
+def test_delete_integration(integration, armis_object):
+    integration_id = integration["data"]["id"]
+
+    print("deleting integration_id=", integration_id)
+    x = armis_object.delete_integration(integration_id)
+    print("x=", x)
+    assert x["success"] is True

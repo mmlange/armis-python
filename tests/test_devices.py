@@ -33,7 +33,7 @@ def test_get_devices(armis_object, device_asq):
     x = armis_object.get_devices(
         asq=device_asq,
     )
-    assert len(x) >= 0
+    assert len(x) > 0
 
 
 def test_get_devices_mismatched_fields(armis_object, device_asq):

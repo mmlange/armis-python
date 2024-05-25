@@ -14,7 +14,8 @@ dynamic = [
 description = "Connect and perform actions with the Armis cloud"
 readme = "README.md"
 requires-python = ">=3.8"
-license = "BSD-3-Clause"
+
+
 keywords = ["armis", "api", "development"]
 
 authors = [
@@ -62,6 +63,7 @@ dependencies = [
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest -rExXsP --cov=armis --cov-report html:.coverage_report/html {args:tests}"
+requpdate = "pur -r requirements.txt"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
@@ -81,24 +83,24 @@ exclude = [
 [publish.index]
 disable = true
 
-[tool.coverage.run]
-source_pkgs = ["armis", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/armis/__about__.py",
-]
+#[tool.coverage.run]
+#source_pkgs = ["armis", "tests"]
+#branch = true
+#parallel = true
+#omit = [
+#  "src/armis/__about__.py",
+#]
 
-[tool.coverage.paths]
-armis = ["src/armis", "*/armis/src/armis"]
-tests = ["tests", "*/armis/tests"]
+#[tool.coverage.paths]
+#armis = ["src/armis", "*/armis/src/armis"]
+#tests = ["tests", "*/armis/tests"]
 
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+#[tool.coverage.report]
+#exclude_lines = [
+#  "no cov",
+#  "if __name__ == .__main__.:",
+#  "if TYPE_CHECKING:",
+#]
 
 [tool.ruff]
 exclude = [
