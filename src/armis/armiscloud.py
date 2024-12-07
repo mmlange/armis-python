@@ -368,7 +368,7 @@ class ArmisCloud:
 
             if "access_token" in returnjson["data"]:
                 self._authorization_token = returnjson["data"]["access_token"]
-                self.logger.debug(f"RAW expiration_utc={returnjson["data"]["expiration_utc"]}")
+                self.logger.debug(f'RAW expiration_utc={returnjson["data"]["expiration_utc"]}')
                 self._authorization_token_expiration = pendulum.parse(
                     returnjson["data"]["expiration_utc"],
                 ).timestamp()
@@ -918,7 +918,7 @@ class ArmisCloud:
         for filename in filenames:
             self.logger.info(f"reading {filename.name}")
             j = self._json_decoder.decode(gzip.decompress(filename.read_bytes()))
-            self.logger.info(f"appending {len(j["data"]["data"])} records")
+            self.logger.info(f'appending {len(j["data"]["data"])} records')
             inventory.extend(j["data"]["data"])
 
         self.logger.debug(f"inventory size={len(inventory)}")
