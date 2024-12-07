@@ -50,7 +50,7 @@ def test_object_creation_large_page_size(config):
 
 
 def test_object_creation_incorrect_loglevel(config):
-    with pytest.warns(UserWarning):
+    with pytest.raises(ValueError):
         ArmisCloud(
             api_secret_key=config["TEST_ARMIS_API_SECRET_KEY"],
             tenant_hostname=config["TEST_ARMIS_TENANT_HOSTNAME"],

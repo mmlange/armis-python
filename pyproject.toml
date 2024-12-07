@@ -13,7 +13,7 @@ dynamic = [
 ]
 description = "Connect and perform actions with the Armis cloud"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 
 keywords = ["armis", "api", "development"]
@@ -32,7 +32,6 @@ classifiers = [
   "Topic :: Communications",
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -61,12 +60,14 @@ dependencies = [
   "pytest-cov",
   "python-dotenv"
 ]
+
 [tool.hatch.envs.default.scripts]
 test = "pytest -rExXsP --cov=armis --cov-report html:.coverage_report/html {args:tests}"
 requpdate = "pur -r requirements.txt"
 
+
 [[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -82,25 +83,6 @@ exclude = [
 
 [publish.index]
 disable = true
-
-#[tool.coverage.run]
-#source_pkgs = ["armis", "tests"]
-#branch = true
-#parallel = true
-#omit = [
-#  "src/armis/__about__.py",
-#]
-
-#[tool.coverage.paths]
-#armis = ["src/armis", "*/armis/src/armis"]
-#tests = ["tests", "*/armis/tests"]
-
-#[tool.coverage.report]
-#exclude_lines = [
-#  "no cov",
-#  "if __name__ == .__main__.:",
-#  "if TYPE_CHECKING:",
-#]
 
 [tool.ruff]
 exclude = [
@@ -125,15 +107,14 @@ exclude = [
   "venv",
   '__pycache__',
 ]
-target-version = "py38"
+target-version = "py39"
+line-length = 120
 
 
 [tool.ruff.lint]
 preview = true
 select = [
     "A", # flake8-builtins
-    "AIR", # Airflow
-    #"ANN", # flake8-annotations
     "ARG", # flake8-unused-arguments
     "ASYNC", # flake8-async
     "B", # flake8-bugbear
@@ -147,7 +128,6 @@ select = [
     "DJ", # flake8-django
     "DTZ", # flake8-datetimez
     "E", # Error
-    "E", # Error
     "EM", # flake8-errmsg
     "ERA", # eradicate
     "EXE", # flake8-executable
@@ -157,7 +137,7 @@ select = [
     "FIX", # flake8-fixme
     "FLY", # flynt
     "FURB", # refurb
-    "G", # flake8-logging-format
+    #"G", # flake8-logging-format
     "I", # isort
     "ICN", # flake8-import-conventions
     "INP", # flake8-no-pep420
@@ -186,12 +166,9 @@ select = [
     "T10", # flake8-debugger
     "T20", # flake8-print
     "TCH", # flake8-type-checking
-    #"TD", # flake8-todos
     "TID", # flake8-tidy-imports
     "TRIO", # flake8-trio
-    #"TRY", # tryceratops
     "UP", # pyupgrade
-    "W", # Warning
     "W", # Warning
     "YTT", # flake8-2020
 ]

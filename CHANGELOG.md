@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.23] - 2024-12-06
+
+### Added
+- Now using loguru for logging.
+
+### Fixed
+- Fixed typos.
+- httpx 0.28 fixed some issues with their client that caused problems in the way we were processing URLs.  We're no longer using furl, so this problem has been solved.
+
+### Changed
+- Replaced native logging with loguru.
+- Upgraded tenacity to 9.0.0.
+- Python 3.8 is now EOL, so it's no longer supported with this library.
+
+### Removed
+- We're no longer using furl.
+
+
 ## [1.0.22] - 2024-05-25
 
 ### Added
@@ -13,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Updated exceptions to be a least a little less generic.
+- Updated exceptions to be at least a little less generic.
 
 ## [1.0.21] - 2024-04-25
 

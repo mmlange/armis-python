@@ -10,15 +10,10 @@
 <a href="https://github.com/mmlange/armis-python/actions"><img src="https://img.shields.io/github/actions/workflow/status/mmlange/armis-python/testsuite.yml?style=flat-square"></a>
 <a href="https://www.pypi.com/projects/armis/"><img src="https://img.shields.io/pypi/v/armis?style=flat-square&logo=python"></a>
 <a href="https://makeapullrequest.com"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square"></a>
-
-
 </p>
 
-
-
-
 **armis** is a Python client library for interacting with the Armis cloud.  It connects using **HTTP/2** by default,
-falling back to **HTTP/1.1** when necessary.  Python 3.8+ is supported.
+falling back to **HTTP/1.1** when necessary.  Python 3.9 or later is supported.
 
 ---
 
@@ -217,11 +212,10 @@ Install with pip:
 $ pip install armis
 ```
 
-**armis** requires Python 3.8+.
+**armis** requires Python 3.9 or later.
 
 ## Dependencies
 **armis** relies on these excellent libraries:
-* [furl](https://github.com/gruns/furl) - provides easy-to-use URL parsing and updating
 * [httpx](https://github.com/encode/httpx/) - The underlying transport implementation for making HTTP requests
 * [msgspec](https://github.com/jcrist/msgspec) - for lightning fast decoding of JSON
 * [pendulum](https://github.com/sdispater/pendulum) - for easy date/time management

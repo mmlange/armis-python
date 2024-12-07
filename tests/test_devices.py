@@ -20,12 +20,12 @@ def test_get_devices_count(armis_object, device_asq):
 
 
 def test_get_devices_count_noasq(armis_object):
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         armis_object.get_devices_count()
 
 
 def test_get_devices_count_weird(armis_object):
-    with pytest.raises(tenacity.RetryError):
+    with pytest.raises(RuntimeError):
         armis_object.get_devices_count(asq="in:nothing")
 
 
@@ -78,10 +78,10 @@ def test_get_devices_none(armis_object):
 
 
 def test_get_devices_blankasq(armis_object):
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         armis_object.get_devices()
 
 
 def test_get_devices_weird(armis_object):
-    with pytest.raises(tenacity.RetryError):
+    with pytest.raises(RuntimeError):
         armis_object.get_devices(asq="in:nothing")
