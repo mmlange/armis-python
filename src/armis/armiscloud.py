@@ -699,7 +699,7 @@ class ArmisCloud:
                 collectornumber = collector["collectorNumber"]
                 collectors_inventory[collectornumber] = collector
 
-            self.logger.debug(f"collectors next={collectors_response["data"]["next"]}")
+            self.logger.debug(f'collectors next={collectors_response["data"]["next"]}')
 
             params["from"] = collectors_response["data"]["next"]
 
@@ -1372,7 +1372,7 @@ class ArmisCloud:
             filename = pl.Path(filename)
             self.logger.info(f"reading filename={filename.name}")
             j = self._json_decoder.decode(gzip.decompress(filename.read_bytes()))
-            self.logger.info(f"appending {len(j["data"])} records")
+            self.logger.info(f'appending {len(j["data"])} records')
             records.extend(j["data"]["results"])
 
         self.logger.debug(f"records size={len(records)}")
