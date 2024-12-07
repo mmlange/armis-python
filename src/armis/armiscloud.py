@@ -9,7 +9,6 @@ import contextlib
 import gzip
 import math
 import pathlib as pl
-import ssl
 import tempfile
 import warnings
 from typing import Union
@@ -161,7 +160,6 @@ class ArmisCloud:
             limits=self._httpx_limits,
             timeout=self._http_timeout,
             trust_env=False,
-            # verify=ssl_context,
         )
 
     def _httpx_callback_request_raise_4xx_5xx(self, response):
@@ -239,9 +237,9 @@ class ArmisCloud:
             with attempt:
                 self.logger.info(f"ATTEMPT NUMBER {attempt.retry_state.attempt_number} of {maximum_retries}")
                 if attempt.retry_state.attempt_number > 1 and "length" in params:
-                    self.logger.info(f"attempt number >1, reducing page size, was {params['length']}")
+                    self.logger.info(f'attempt number >1, reducing page size, was {params["length"]}')
                     params["length"] = int(params["length"] * 0.75)
-                    self.logger.info(f"reducing page size, now {params["length"]}")
+                    self.logger.info(f'reducing page size, now {params["length"]}')
 
                 self._update_authorization_token()
 
@@ -679,7 +677,7 @@ class ArmisCloud:
         collectors_inventory = {}
 
         while params["from"] is not None:
-            self.logger.info(f"fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE}")
+            self.logger.info(f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE}')
 
             get_collectors_request = self._api_http_request(
                 method="GET",
@@ -827,7 +825,7 @@ class ArmisCloud:
         while params["from"] is not None:
             page_fetch_start = pendulum.now()
             self.logger.info(
-                f"fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {inventory_total}",
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {inventory_total}'
             )
             device_details = self._api_http_request(
                 method="GET",
@@ -1165,7 +1163,7 @@ class ArmisCloud:
 
         while params["from"] is not None:
             self.logger.info(
-                f"fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {integrations_count}",
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {integrations_count}'
             )
 
             self.logger.debug(f"url={url}")
@@ -1293,7 +1291,7 @@ class ArmisCloud:
 
         while params["from"] is not None:
             self.logger.info(
-                f"fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {records_total}",
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {records_total}'
             )
             search_details = self._api_http_request(
                 method="GET",
