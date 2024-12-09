@@ -1,0 +1,112 @@
+
+target-version = "py39"
+line-length = 120
+
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+  '__pycache__',
+]
+
+
+[lint]
+select = [
+    "A", # flake8-builtins
+    "ARG", # flake8-unused-arguments
+    "ASYNC", # flake8-async
+    "B", # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "C", # Convention
+    "C4", # flake8-comprehensions
+    "C90", # mccabe
+    "COM", # flake8-commas
+    "D", # pydocstyle
+    "DJ", # flake8-django
+    "DTZ", # flake8-datetimez
+    "E", # Error
+    "EM", # flake8-errmsg
+    "ERA", # eradicate
+    "EXE", # flake8-executable
+    "F", # Pyflakes
+    "FA", # flake8-future-annotations
+    "FBT", # flake8-boolean-trap
+    "FIX", # flake8-fixme
+    "FLY", # flynt
+    "FURB", # refurb
+    "I", # isort
+    "ICN", # flake8-import-conventions
+    "INP", # flake8-no-pep420
+    "INT", # flake8-gettext
+    "ISC", # flake8-implicit-str-concat
+    "LOG", # flake8-logging
+    "N", # pep8-naming
+    "NPY", # NumPy-specific rules
+    "PD", # pandas-vet
+    "PERF", # Perflint
+    "PGH", # pygrep-hooks
+    "PIE", # flake8-pie
+    "PL", # Pylint
+    "PT", # flake8-pytest-style
+    "PTH", # flake8-use-pathlib
+    "PYI", # flake8-pyi
+    "Q", # flake8-quotes
+    "R", # Refactor
+    "RET", # flake8-return
+    "RSE", # flake8-raise
+    "RUF", # Ruff-specific rules
+    "S", # flake8-bandit
+    "SIM", # flake8-simplify
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "TRIO", # flake8-trio
+    "UP", # pyupgrade
+    "W", # Warning
+    "YTT", # flake8-2020
+]
+
+extend-ignore = [ "D105", "EM101", "F401", "S101", "CPY001"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+
+[lint.mccabe]
+max-complexity = 22
+
+[lint.pydocstyle]
+convention = "numpy"
+
+[lint.pylint]
+max-locals = 30
+max-public-methods = 30
+max-branches = 20
+max-statements = 100
+

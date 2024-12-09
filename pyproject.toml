@@ -64,3 +64,6 @@ exclude = [
   ".github",
   "mkdocs.yml",
 ]
+
+[tool.hatch.publish.index]
+disable = true
