@@ -9,10 +9,10 @@ import contextlib
 import gzip
 import math
 import pathlib as pl
+import sys
 import tempfile
 import warnings
-from typing import Union
-import sys
+
 import httpx
 import msgspec
 import pendulum
@@ -81,7 +81,7 @@ class ArmisCloud:
         self._authorization_token = 0
         self._authorization_token_expiration = 0
 
-        self.temporary_directory = kwargs.get("temporary_directory", None)
+        self.temporary_directory = kwargs.get("temporary_directory")
         if self.temporary_directory is None:
             self.temporary_directory = tempfile.TemporaryDirectory()
 
@@ -95,7 +95,8 @@ class ArmisCloud:
         )
         if self.ARMIS_API_PAGE_SIZE > self.ARMIS_MAXIMUM_API_PAGE_SIZE:
             self.logger.info(
-                f"page size requested={self.ARMIS_API_PAGE_SIZE}, page size maximum is={self.ARMIS_MAXIMUM_API_PAGE_SIZE}",
+                f"page size requested={self.ARMIS_API_PAGE_SIZE}, "
+                f"page size maximum is={self.ARMIS_MAXIMUM_API_PAGE_SIZE}",
             )
             warnings.warn(
                 "page size requested="
@@ -105,7 +106,7 @@ class ArmisCloud:
                 stacklevel=2,
             )
         self.logger.debug(f"api_page_size={self.ARMIS_API_PAGE_SIZE}")
-        self.API_SECRET_KEY: str = kwargs.get("api_secret_key", None)
+        self.API_SECRET_KEY: str = kwargs.get("api_secret_key")
         if self.API_SECRET_KEY is None:
             raise ValueError("No secret key provided")
 
@@ -117,7 +118,7 @@ class ArmisCloud:
         )
         self.httpx_client = self._get_httpx_client()
 
-        tenant_hostname = kwargs.get("tenant_hostname", None)
+        tenant_hostname = kwargs.get("tenant_hostname")
         if tenant_hostname is None:
             raise ValueError("tenant_hostname is required")
 
@@ -201,8 +202,8 @@ class ArmisCloud:
         """
         self.logger.debug(f"kwargs={kwargs}")
 
-        method: str = kwargs.get("method", None)
-        url = kwargs.get("url", None)
+        method: str = kwargs.get("method")
+        url = kwargs.get("url")
         content: str = kwargs.get("content", "")
         headers: dict = kwargs.get("headers", {})
         json: dict = kwargs.get("json", {})
@@ -351,7 +352,7 @@ class ArmisCloud:
         self.logger.debug(f"now={now}")
         self.logger.debug(f"remaining_time={remaining_time}")
 
-        if remaining_time < 1_000:
+        if remaining_time < 1_000:  # noqa: PLR2004
             self.logger.debug("remaining_time <1000")
             self.logger.debug(f"expires={self._authorization_token_expiration}")
             self.logger.debug("now > _authorization_token_expiration")
@@ -406,9 +407,9 @@ class ArmisCloud:
         """
         self.logger.debug(f"kwargs={kwargs}")
 
-        affected_sites = kwargs.get("affected_sites", None)
-        name = kwargs.get("name", None)
-        ruleaql = kwargs.get("ruleaql", None)
+        affected_sites = kwargs.get("affected_sites")
+        name = kwargs.get("name")
+        ruleaql = kwargs.get("ruleaql")
 
         if name is None and ruleaql is None:
             raise ValueError("name and ruleaql are required")
@@ -575,13 +576,13 @@ class ArmisCloud:
         """
         self.logger.debug(f"kwargs={kwargs}")
 
-        boundary_id = kwargs.get("boundary_id", None)
+        boundary_id = kwargs.get("boundary_id")
         if boundary_id is None:
             raise ValueError("No boundary_id provided")
 
-        name = kwargs.get("name", None)
-        affected_sites = kwargs.get("affected_sites", None)
-        ruleaql = kwargs.get("ruleaql", None)
+        name = kwargs.get("name")
+        affected_sites = kwargs.get("affected_sites")
+        ruleaql = kwargs.get("ruleaql")
 
         boundary_update_payload = {}
         if name is not None:
@@ -750,7 +751,6 @@ class ArmisCloud:
         dict
             JSON data as a dict.
         """
-
         # patch
         url = self.TENANT_BASE_URL + f"v1/collectors/{collector_id}/"
 
@@ -825,7 +825,8 @@ class ArmisCloud:
         while params["from"] is not None:
             page_fetch_start = pendulum.now()
             self.logger.info(
-                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {inventory_total}'
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} '
+                f'of a total of {inventory_total}',
             )
             device_details = self._api_http_request(
                 method="GET",
@@ -892,7 +893,8 @@ class ArmisCloud:
                 params["length"] = self.ARMIS_API_PAGE_SIZE  # pragma: no cover
 
                 self.logger.info(
-                    f"page_fetch_time > {int(self._http_timeout * 0.9)}, reducing page size by 10% to {self.ARMIS_API_PAGE_SIZE}"
+                    f"page_fetch_time > {int(self._http_timeout * 0.9)}, "
+                    f"reducing page size by 10% to {self.ARMIS_API_PAGE_SIZE}",
                 )
 
             if params["from"] > 0:
@@ -905,7 +907,7 @@ class ArmisCloud:
                 remaining_time = remaining_devices * time_per_device  # pragma: no cover
                 self.logger.debug(f"remaining_time={remaining_time}")  # pragma: no cover
 
-            if remaining_time < 0:
+            if remaining_time < 0:  # noqa: SIM108
                 estimated_end_time = now
             else:
                 estimated_end_time = now.add(seconds=remaining_time)  # pragma: no cover
@@ -938,7 +940,6 @@ class ArmisCloud:
         device_count : int
             Count of devices matching ASQ.
         """
-
         if asq is None:
             raise ValueError("asq is required")
         self.logger.info(f"asq={asq}")
@@ -978,7 +979,7 @@ class ArmisCloud:
             Action to perform, one of add or remove.
         """
         self.logger.debug("tag_device")
-        device_id = kwargs.get("device_id", None)
+        device_id = kwargs.get("device_id")
         if device_id is None:
             raise ValueError("no device_id specified")
 
@@ -1070,14 +1071,14 @@ class ArmisCloud:
         ```
 
         """
-        collector_id = kwargs.get("collector_id", None)
-        integration_name = kwargs.get("integration_name", None)
-        integration_type = kwargs.get("integration_type", None)
-        integration_params = kwargs.get("integration_params", None)
+        collector_id = kwargs.get("collector_id")
+        integration_name = kwargs.get("integration_name")
+        integration_type = kwargs.get("integration_type")
+        integration_params = kwargs.get("integration_params")
 
         if collector_id is None or integration_name is None or integration_params is None or integration_type is None:
             raise ValueError(
-                "no collector_id, integration_name, integrations_params, " "or integration_type",
+                "no collector_id, integration_name, integrations_params, or integration_type",
             )
 
         url = self.TENANT_BASE_URL + "v2/integrations/"
@@ -1163,7 +1164,8 @@ class ArmisCloud:
 
         while params["from"] is not None:
             self.logger.info(
-                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {integrations_count}'
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} '
+                f'of a total of {integrations_count}',
             )
 
             self.logger.debug(f"url={url}")
@@ -1244,7 +1246,7 @@ class ArmisCloud:
         return self._json_decoder.decode(integration_delete.text)
 
     def get_search(self, asq: str, **kwargs: dict) -> dict:
-        """Returns search result for given ASQ string.
+        """Return search result for given ASQ string.
 
         Parameters
         ----------
@@ -1291,7 +1293,8 @@ class ArmisCloud:
 
         while params["from"] is not None:
             self.logger.info(
-                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} of a total of {records_total}'
+                f'fetching {params["from"]}-{params["from"] + self.ARMIS_API_PAGE_SIZE} '
+                f'of a total of {records_total}',
             )
             search_details = self._api_http_request(
                 method="GET",
@@ -1358,7 +1361,7 @@ class ArmisCloud:
                 remaining_time = remaining_records * time_per_record
                 self.logger.debug(f"remaining_time={remaining_time}")
 
-            if remaining_time < 0:
+            if remaining_time < 0:  # noqa: SIM108
                 estimated_end_time = now
             else:
                 estimated_end_time = now.add(seconds=remaining_time)
@@ -1369,7 +1372,6 @@ class ArmisCloud:
 
         # reproduce inventory here
         for filename in filenames:
-            filename = pl.Path(filename)
             self.logger.info(f"reading filename={filename.name}")
             j = self._json_decoder.decode(gzip.decompress(filename.read_bytes()))
             self.logger.info(f'appending {len(j["data"])} records')
@@ -1379,7 +1381,6 @@ class ArmisCloud:
 
         # clean up tmpdirectory
         for filename in filenames:
-            filename = pl.Path(filename)
             filename.unlink(missing_ok=True)
 
         if len(records) > 0:
@@ -1479,7 +1480,7 @@ class ArmisCloud:
         dict
             JSON data as a dict.
         """
-        site_id = kwargs.get("site_id", None)
+        site_id = kwargs.get("site_id")
 
         if site_id is None:
             raise ValueError("site_id was not provided")
@@ -1526,7 +1527,7 @@ class ArmisCloud:
 
         return self._json_decoder.decode(user_delete.text)
 
-    def edit_user(self, user_id_or_email: Union[str, int], **kwargs: dict) -> dict:
+    def edit_user(self, user_id_or_email: str | int, **kwargs: dict) -> dict:
         """Edit a user given the user_id or email.
 
         Parameters
@@ -1573,10 +1574,7 @@ class ArmisCloud:
 
         for required_attribute in required_attributes:
             if edit_user_dict.get(required_attribute) is None:
-                edit_user_dict[required_attribute] = kwargs.get(
-                    required_attribute,
-                    None,
-                )
+                edit_user_dict[required_attribute] = kwargs.get(required_attribute)
         if None in list(edit_user_dict.values()):
             need_data_from_cloud = True
 
@@ -1589,7 +1587,7 @@ class ArmisCloud:
                 if edit_user_dict[required_attribute] is None:
                     edit_user_dict[required_attribute] = existinguser[required_attribute]
         for optional_attribute in optional_attributes:
-            optional_attribute_value = kwargs.get(optional_attribute, None)
+            optional_attribute_value = kwargs.get(optional_attribute)
             if optional_attribute_value is not None:
                 edit_user_dict[optional_attribute] = optional_attribute_value
 

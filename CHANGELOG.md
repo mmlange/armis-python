@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.23] - 2024-12-06
+## [1.0.23] - 2024-12-08
 
 ### Added
 - Now using loguru for logging.
@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - We're no longer using furl.
-
 
 ## [1.0.22] - 2024-05-25
 

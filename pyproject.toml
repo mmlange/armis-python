@@ -1,16 +1,10 @@
 [build-system]
-requires = [
-    "hatchling",
-    "hatch-requirements-txt"
-]
+requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
 [project]
 name = "armis"
-dynamic = [
-    "version",
-    "dependencies",
-]
+dynamic = ["version", "dependencies"]
 description = "Connect and perform actions with the Armis cloud"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -18,12 +12,8 @@ requires-python = ">=3.9"
 
 keywords = ["armis", "api", "development"]
 
-authors = [
-  {name = "Matthew Lange", email = "mmlange@gmail.com" }
-]
-maintainers = [
-  {name = "Matthew Lange", email = "mmlange@gmail.com" }
-]
+authors = [{ name = "Matthew Lange", email = "mmlange@gmail.com" }]
+maintainers = [{ name = "Matthew Lange", email = "mmlange@gmail.com" }]
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -54,20 +44,14 @@ files = ["requirements.txt"]
 
 
 [tool.hatch.envs.default]
-dependencies = [
-  "coverage[toml]>=6.5",
-  "pytest",
-  "pytest-cov",
-  "python-dotenv"
-]
+dependencies = ["coverage[toml]>=6.5", "pytest", "python-dotenv"]
 
 [tool.hatch.envs.default.scripts]
-test = "pytest -rExXsP --cov=armis --cov-report html:.coverage_report/html {args:tests}"
-requpdate = "pur -r requirements.txt"
-
+test = "pytest -rExXsP {args:tests}"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -80,121 +64,3 @@ exclude = [
   ".github",
   "mkdocs.yml",
 ]
-
-[publish.index]
-disable = true
-
-[tool.ruff]
-exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".hg",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "venv",
-  '__pycache__',
-]
-target-version = "py39"
-line-length = 120
-
-
-[tool.ruff.lint]
-preview = true
-select = [
-    "A", # flake8-builtins
-    "ARG", # flake8-unused-arguments
-    "ASYNC", # flake8-async
-    "B", # flake8-bugbear
-    "BLE", # flake8-blind-except
-    "C", # Convention
-    "C4", # flake8-comprehensions
-    "C90", # mccabe
-    "COM", # flake8-commas
-    "CPY", # flake8-copyright
-    "D", # pydocstyle
-    "DJ", # flake8-django
-    "DTZ", # flake8-datetimez
-    "E", # Error
-    "EM", # flake8-errmsg
-    "ERA", # eradicate
-    "EXE", # flake8-executable
-    "F", # Pyflakes
-    "FA", # flake8-future-annotations
-    "FBT", # flake8-boolean-trap
-    "FIX", # flake8-fixme
-    "FLY", # flynt
-    "FURB", # refurb
-    #"G", # flake8-logging-format
-    "I", # isort
-    "ICN", # flake8-import-conventions
-    "INP", # flake8-no-pep420
-    "INT", # flake8-gettext
-    "ISC", # flake8-implicit-str-concat
-    "LOG", # flake8-logging
-    "N", # pep8-naming
-    "NPY", # NumPy-specific rules
-    "PD", # pandas-vet
-    "PERF", # Perflint
-    "PGH", # pygrep-hooks
-    "PIE", # flake8-pie
-    "PL", # Pylint
-    "PT", # flake8-pytest-style
-    "PTH", # flake8-use-pathlib
-    "PYI", # flake8-pyi
-    "Q", # flake8-quotes
-    "R", # Refactor
-    "RET", # flake8-return
-    "RSE", # flake8-raise
-    "RUF", # Ruff-specific rules
-    "S", # flake8-bandit
-    "SIM", # flake8-simplify
-    "SLF", # flake8-self
-    "SLOT", # flake8-slots
-    "T10", # flake8-debugger
-    "T20", # flake8-print
-    "TCH", # flake8-type-checking
-    "TID", # flake8-tidy-imports
-    "TRIO", # flake8-trio
-    "UP", # pyupgrade
-    "W", # Warning
-    "YTT", # flake8-2020
-]
-
-extend-ignore = [ "D105", "EM101", "F401", "S101", "CPY001"]
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-docstring-code-format = true
-docstring-code-line-length = "dynamic"
-
-
-[tool.ruff.lint.mccabe]
-max-complexity = 22
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-
-[tool.ruff.lint.pylint]
-max-locals = 30
-max-public-methods = 30
-max-branches = 15
-max-statements = 100
-
